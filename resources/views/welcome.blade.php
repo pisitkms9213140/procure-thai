@@ -415,7 +415,7 @@
     <div class="nav-inner">
         <a href="/" class="logo">Procure<span>Thai</span></a>
         <div class="nav-btns">
-            <a href="login" class="btn-nav-outline">เข้าสู่ระบบ</a>
+            <a href="/login" class="btn-nav-outline">เข้าสู่ระบบ</a>
             <a href="/register" class="btn-nav-primary">ทดลองใช้ฟรี</a>
         </div>
     </div>

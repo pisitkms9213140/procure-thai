@@ -1,6 +1,14 @@
 <?php
 
+use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
+
+// Self-service trial registration
+Route::get('/register', [RegisterController::class, 'show'])->name('register');
+Route::post('/register', [RegisterController::class, 'store']);
+Route::get('/register/success/{subdomain}', function ($subdomain) {
+    return view('register-success', compact('subdomain'));
+})->name('register.success');
 
 Route::get('/', function () {
     $host = request()->getHost();
@@ -14,14 +22,6 @@ Route::get('/', function () {
     return redirect('/app');
 });
 Route::get('/login', function () {
-    $host = request()->getHost();
-    
-    // ถ้าเข้าจากโดเมนหลัก (หรือ localhost) ให้พาไปหน้า Superadmin
-    if ($host === 'procurethai.uk' || $host === '127.0.0.1' || $host === 'localhost') {
-        return redirect('/superadmin/login');
-    }
-    
-    // ถ้าเข้าจาก Subdomain (เช่น abc.procurethai.uk) ให้พาไปหน้าของลูกค้า
-    return redirect('/app/login');
-    
-})->name('login'); // 👈 หัวใจสำคัญคือตรงนี้ครับ บังคับตั้งชื่อให้ตรงกับที่ Laravel ตามหา
+    // Central domain → แสดงหน้า login ให้กรอก subdomain
+    return view('central-login');
+})->name('login');
