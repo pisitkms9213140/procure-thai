@@ -15,9 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Without this, Livewire generates http:// URLs → Mixed Content error.
         $middleware->trustProxies(at: '*');
 
-        // Initialize tenancy for ALL web requests (including Livewire's /livewire/update).
-        // InitializeTenancyByDomain skips central domains automatically.
-        $middleware->web(append: [
+        // Initialize tenancy BEFORE StartSession so sessions read/write the correct
+        // tenant DB. Using prepend puts it at the front of the web middleware group.
+        // InitializeTenancyByDomain is a no-op on central domains (procurethai.uk).
+        $middleware->web(prepend: [
             \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
         ]);
     })
