@@ -35,11 +35,6 @@ class EnsureOnboardingComplete
             }
         }
 
-        // JSON / AJAX requests — don't redirect, return 403
-        if ($request->wantsJson() || $request->isXmlHttpRequest()) {
-            return response()->json(['message' => 'Onboarding not complete'], 403);
-        }
-
         return redirect('/app/onboarding');
     }
 }
