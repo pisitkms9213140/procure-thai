@@ -27,7 +27,7 @@ class InvoiceResource extends Resource
     protected static ?string $navigationLabel = 'ใบแจ้งหนี้';
     protected static ?string $modelLabel = 'ใบแจ้งหนี้';
     protected static ?string $pluralModelLabel = 'ใบแจ้งหนี้';
-    protected static ?string $navigationGroup = 'จัดซื้อ';
+    protected static \UnitEnum|string|null $navigationGroup = 'จัดซื้อ';
     protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'invoice_number';
 

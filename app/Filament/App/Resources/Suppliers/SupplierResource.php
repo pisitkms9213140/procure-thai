@@ -25,7 +25,7 @@ class SupplierResource extends Resource
     protected static ?string $navigationLabel = 'ซัพพลายเออร์';
     protected static ?string $modelLabel = 'ซัพพลายเออร์';
     protected static ?string $pluralModelLabel = 'ซัพพลายเออร์';
-    protected static ?string $navigationGroup = 'จัดซื้อ';
+    protected static \UnitEnum|string|null $navigationGroup = 'จัดซื้อ';
     protected static ?int $navigationSort = 1;
     protected static ?string $recordTitleAttribute = 'name';
 

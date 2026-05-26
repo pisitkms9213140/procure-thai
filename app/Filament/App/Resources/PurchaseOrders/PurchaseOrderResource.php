@@ -30,7 +30,7 @@ class PurchaseOrderResource extends Resource
     protected static ?string $navigationLabel = 'ใบสั่งซื้อ (PO)';
     protected static ?string $modelLabel = 'ใบสั่งซื้อ';
     protected static ?string $pluralModelLabel = 'ใบสั่งซื้อ';
-    protected static ?string $navigationGroup = 'จัดซื้อ';
+    protected static \UnitEnum|string|null $navigationGroup = 'จัดซื้อ';
     protected static ?int $navigationSort = 2;
     protected static ?string $recordTitleAttribute = 'po_number';
 
