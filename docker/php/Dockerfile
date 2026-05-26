@@ -20,7 +20,3 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get clean
 
 WORKDIR /var/www
-
-# Run as www-data
-RUN chown -R www-data:www-data /var/www
-USER www-data
