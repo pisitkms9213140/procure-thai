@@ -29,9 +29,9 @@ class SuperadminPanelProvider extends PanelProvider
             ->path('superadmin')
             ->login()
             ->brandName('ProcureThai - Superadmin')
-            ->domains([
-            'procurethai.uk', // ล็อกให้เข้าได้เฉพาะโดเมนหลักเท่านั้น
-        ])
+            ->domains(
+            array_filter([env('SUPERADMIN_DOMAIN', 'procurethai.uk')])
+        )
             ->colors([
                 'primary' => Color::Amber,
             ])
