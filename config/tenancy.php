@@ -19,6 +19,8 @@ return [
     'central_domains' => [
         '127.0.0.1',
         'localhost',
+        'procurethai.uk',
+        'www.procurethai.uk',
     ],
 
     /**
