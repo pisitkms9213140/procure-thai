@@ -43,11 +43,11 @@ class RegisterController extends Controller
             'status'       => 'active',
         ]);
 
-        // สร้าง Domain
-        $centralDomain = config('app.url');
-        $host = parse_url($centralDomain, PHP_URL_HOST) ?? 'localhost';
+        // สร้าง Domain  (ใช้ CENTRAL_DOMAIN ถ้ามี ไม่งั้น parse จาก APP_URL)
+        $centralHost = env('CENTRAL_DOMAIN')
+            ?? (parse_url(config('app.url'), PHP_URL_HOST) ?? 'localhost');
         $tenant->domains()->create([
-            'domain' => $request->subdomain . '.' . $host,
+            'domain' => $request->subdomain . '.' . $centralHost,
         ]);
 
         // สร้าง User คนแรกใน Tenant DB

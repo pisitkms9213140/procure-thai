@@ -11,6 +11,7 @@
         "filament/tables": "^5.6",
         "laravel/framework": "^13.7",
         "laravel/tinker": "^3.0",
+        "maatwebsite/excel": "^3.1",
         "stancl/tenancy": "^3.10"
     },
     "require-dev": {

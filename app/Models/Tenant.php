@@ -18,7 +18,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'company_name',
             'plan',
             'status',
-            'data', // demo, pro, enterprise
+            'integration_mode',
+            'onboarding_completed',
+            'data',
         ];
     }
 }
