@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust Cloudflare (and any reverse proxy) so Laravel detects HTTPS correctly.
+        // Without this, Livewire generates http:// URLs → Mixed Content error.
+        $middleware->trustProxies(at: '*');
+
         // Initialize tenancy for ALL web requests (including Livewire's /livewire/update).
         // InitializeTenancyByDomain skips central domains automatically.
         $middleware->web(append: [
