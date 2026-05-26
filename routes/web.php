@@ -24,4 +24,9 @@ Route::get('/', function () {
 Route::get('/login', function () {
     // Central domain → แสดงหน้า login ให้กรอก subdomain
     return view('central-login');
-})->name('login');
+})->name('central.login');
+
+// Redirect /login → /masuk เพื่อหนี Filament route override
+Route::get('/masuk', function () {
+    return view('central-login');
+})->name('masuk');

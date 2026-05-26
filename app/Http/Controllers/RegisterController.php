@@ -51,15 +51,14 @@ class RegisterController extends Controller
         ]);
 
         // สร้าง User คนแรกใน Tenant DB
-        tenancy()->initialize($tenant);
-
-        \App\Models\User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        tenancy()->end();
+        // ใช้ $tenant->run() เพื่อให้ Eloquent ใช้ tenant connection จริงๆ
+        $tenant->run(function () use ($request) {
+            \App\Models\User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+        });
 
         return redirect()->route('register.success', ['subdomain' => $request->subdomain]);
     }
