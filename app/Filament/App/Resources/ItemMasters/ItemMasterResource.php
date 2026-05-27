@@ -3,6 +3,7 @@
 namespace App\Filament\App\Resources\ItemMasters;
 
 use App\Filament\App\Resources\ItemMasters\Pages;
+use App\Filament\App\Resources\ItemMasters\RelationManagers\VendorsRelationManager;
 use App\Models\ItemMaster;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -98,6 +99,13 @@ class ItemMasterResource extends Resource
             ])
             ->actions([EditAction::make()])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            VendorsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

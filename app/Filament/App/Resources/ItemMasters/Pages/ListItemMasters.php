@@ -62,7 +62,7 @@ class ListItemMasters extends ListRecords
                 $item->save();
 
                 return true;
-            }),
+            }, prefixFromKey: 'item_code', groupFromKey: 'item_group_name'),
         ];
     }
 }

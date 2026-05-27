@@ -16,8 +16,9 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class SheetReader
 {
-    /** Per-request header memo keyed by absolute path (avoids re-parsing per Select). */
+    /** Per-request memos keyed by absolute path (avoid re-parsing per closure). */
     protected static array $headerCache = [];
+    protected static array $rowsCache = [];
 
     /** Resolve a FileUpload state value to an absolute, readable file path. */
     public static function pathFromState(mixed $state): ?string
@@ -42,12 +43,16 @@ class SheetReader
         return null;
     }
 
-    /** First worksheet as raw rows (row 0 = headers). */
+    /** First worksheet as raw rows (row 0 = headers), memoised per path. */
     public static function toRows(string $path): array
     {
+        if (array_key_exists($path, static::$rowsCache)) {
+            return static::$rowsCache[$path];
+        }
+
         $sheets = Excel::toArray(new RawSheetImport(), $path);
 
-        return $sheets[0] ?? [];
+        return static::$rowsCache[$path] = ($sheets[0] ?? []);
     }
 
     /** Trimmed header labels from row 0 (memoised per path). */

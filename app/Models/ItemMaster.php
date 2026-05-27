@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ItemMaster extends Model
@@ -38,5 +39,6 @@ class ItemMaster extends Model
 
     public function uom(): BelongsTo { return $this->belongsTo(UomMaster::class, 'uom_id'); }
     public function defaultVendor(): BelongsTo { return $this->belongsTo(Supplier::class, 'default_vendor_code', 'code'); }
+    public function vendors(): HasMany { return $this->hasMany(ItemSupplier::class); }
     public function scopeActive($q) { return $q->where('is_active', true); }
 }
