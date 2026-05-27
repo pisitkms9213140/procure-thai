@@ -74,6 +74,47 @@ class ListItemMasters extends ListRecords
 
                 return true;
             }, prefixFromKey: 'item_code', groupFromKey: 'item_group_name'),
+
+            // Bulk-link vendors + last purchase price to existing items.
+            MappedImportAction::make('นำเข้า Vendor สินค้า (Excel)', [
+                ['key' => 'item_no', 'label' => 'รหัสสินค้า (Item No.)', 'required' => true, 'guess' => ['item no', 'item code', 'รหัสสินค้า', 'รหัส']],
+                ['key' => 'vendor_id', 'label' => 'รหัส Vendor', 'required' => true, 'guess' => ['card_code', 'vendor code', 'vendor id', 'vendor', 'รหัสผู้ขาย']],
+                ['key' => 'last_purchase', 'label' => 'ราคาล่าสุด', 'guess' => ['last purchase', 'price', 'ราคาล่าสุด', 'ราคา']],
+            ], function (array $v, array $raw = []): bool {
+                $code   = mb_strtoupper(trim((string) ($v['item_no'] ?? '')));
+                $vendor = mb_strtoupper(trim((string) ($v['vendor_id'] ?? '')));
+                if ($code === '' || $vendor === '') {
+                    return false;
+                }
+
+                $item = ItemMaster::where('item_code', $code)->first();
+                if (! $item) {
+                    return false; // unknown item — skipped
+                }
+
+                $lp    = $v['last_purchase'] ?? null;
+                $price = ($lp !== null && $lp !== '') ? (float) $lp : null;
+
+                // Link vendor to item (pivot allows multiple vendors per item).
+                \App\Models\ItemSupplier::updateOrCreate(
+                    ['item_id' => $item->id, 'vendor_code' => $vendor],
+                    $price !== null ? ['price' => $price] : []
+                );
+
+                // Set default vendor if the item has none; update last purchase price.
+                $updates = [];
+                if (empty($item->default_vendor_code)) {
+                    $updates['default_vendor_code'] = $vendor;
+                }
+                if ($price !== null) {
+                    $updates['last_purchase_price'] = $price;
+                }
+                if ($updates) {
+                    $item->update($updates);
+                }
+
+                return true;
+            }, name: 'importVendor', label: 'นำเข้า Vendor'),
         ];
     }
 }

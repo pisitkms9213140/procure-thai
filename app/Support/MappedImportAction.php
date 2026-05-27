@@ -37,6 +37,8 @@ class MappedImportAction
         callable $persist,
         ?string $prefixFromKey = null,
         ?string $groupFromKey = null,
+        string $name = 'import',
+        string $label = 'นำเข้า Excel',
     ): Action {
         $form = [
             FileUpload::make('file')
@@ -117,8 +119,8 @@ class MappedImportAction
                 ->visible(fn (Get $get) => filled($get('_groups')));
         }
 
-        return Action::make('import')
-            ->label('นำเข้า Excel')
+        return Action::make($name)
+            ->label($label)
             ->icon('heroicon-o-arrow-up-tray')
             ->color('gray')
             ->visible(fn () => ! (auth()->user()?->isVendor() ?? false))

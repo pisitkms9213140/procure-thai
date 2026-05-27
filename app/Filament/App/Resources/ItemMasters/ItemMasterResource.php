@@ -89,10 +89,12 @@ class ItemMasterResource extends Resource
                     ])
                     ->createOptionUsing(fn (array $data) => ItemCategory::create([
                         'code' => $data['code'], 'name' => $data['name'], 'is_active' => true,
-                    ])->code),
+                    ])->code)
+                    ->columnSpanFull(),
                 Select::make('item_group_name')->label('ชื่อกลุ่มสินค้า')
                     ->options(fn () => ItemCategory::query()->orderBy('name')->pluck('name', 'name'))
-                    ->searchable()->disabled($locked),
+                    ->searchable()->disabled($locked)
+                    ->columnSpanFull(),
                 Select::make('uom_code')->label('หน่วยคงคลัง (หน่วยเล็ก)')
                     ->options(fn () => UomMaster::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($u) => [$u->code => "{$u->code} - {$u->name}"]))
