@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\App\Pages\ProfilePage;
+use App\Filament\App\Widgets\WelcomeWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -12,7 +12,6 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use App\Filament\App\Widgets\WelcomeWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -37,8 +36,12 @@ class AppPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->darkMode(false)
-            ->profile(ProfilePage::class)
             ->userMenuItems([
+                MenuItem::make()
+                    ->label('โปรไฟล์ของฉัน')
+                    ->icon('heroicon-o-user-circle')
+                    ->url('/app/profile-page'),
+
                 MenuItem::make()
                     ->label(fn () => session('locale', 'th') === 'th' ? '🇬🇧 Switch to English' : '🇹🇭 ภาษาไทย')
                     ->icon('heroicon-o-language')
