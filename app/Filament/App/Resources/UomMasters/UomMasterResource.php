@@ -31,7 +31,13 @@ class UomMasterResource extends Resource
             TextInput::make('code')
                 ->label('รหัสหน่วยนับ')->required()->maxLength(20)
                 ->disabled(fn ($record) => $record !== null)->dehydrated(),
-            TextInput::make('name')->label('ชื่อหน่วยนับ')->required()->maxLength(100),
+            TextInput::make('name')->label('ชื่อหน่วยนับ (หน่วยคงคลัง)')->required()->maxLength(100),
+            TextInput::make('purchase_unit')->label('หน่วยซื้อ')
+                ->helperText('หน่วยที่ใช้ตอนสั่งซื้อใน PO (เช่น กล่อง, ลัง) เว้นว่างถ้าใช้หน่วยเดียวกัน')
+                ->maxLength(100),
+            TextInput::make('conversion_factor')->label('ตัวคูณ')
+                ->helperText('จำนวนหน่วยคงคลัง (หน่วยเล็ก) ต่อ 1 หน่วยซื้อ เช่น 1 กล่อง = 12 ชิ้น → 12')
+                ->numeric()->minValue(0)->default(1),
             TextInput::make('sap_code')->label('รหัสใน SAP B1')->maxLength(20),
             Toggle::make('is_active')->label('ใช้งาน')->default(true),
         ]);
@@ -42,7 +48,9 @@ class UomMasterResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')->label('รหัส')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('name')->label('ชื่อหน่วยนับ')->searchable(),
+                Tables\Columns\TextColumn::make('name')->label('หน่วยนับ')->searchable(),
+                Tables\Columns\TextColumn::make('purchase_unit')->label('หน่วยซื้อ')->placeholder('-'),
+                Tables\Columns\TextColumn::make('conversion_factor')->label('ตัวคูณ')->numeric()->placeholder('-'),
                 Tables\Columns\TextColumn::make('sap_code')->label('รหัส SAP')->placeholder('-'),
                 Tables\Columns\IconColumn::make('is_active')->label('ใช้งาน')->boolean(),
             ])

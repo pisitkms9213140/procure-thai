@@ -13,6 +13,8 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();               // KG, PCS, BOX, etc.
             $table->string('name');                         // กิโลกรัม, ชิ้น, กล่อง
+            $table->string('purchase_unit')->nullable();    // หน่วยซื้อ (หน่วยใหญ่ตอนสั่ง PO)
+            $table->decimal('conversion_factor', 15, 4)->default(1); // ตัวคูณ: หน่วยเล็กต่อ 1 หน่วยซื้อ
             $table->string('sap_code')->nullable();         // UoM code ใน SAP
             $table->boolean('is_active')->default(true);
             $table->timestamps();
