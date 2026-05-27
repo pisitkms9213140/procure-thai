@@ -28,9 +28,9 @@ class SuperadminPanelProvider extends PanelProvider
             ->id('superadmin')
             ->path('superadmin')
             ->login()
-            ->brandName('ProcureThai - Superadmin')
+            ->brandName('ProcureThai — Superadmin')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Slate,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
