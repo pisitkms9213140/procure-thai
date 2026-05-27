@@ -41,7 +41,11 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Relative URL so storage resolves to the CURRENT host. In this
+            // multi-tenant setup every subdomain serves the same public/ dir;
+            // an absolute APP_URL (central domain) made FileUpload/FilePond
+            // fetch the image cross-origin → CORS blocked → preview stuck.
+            'url' => '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

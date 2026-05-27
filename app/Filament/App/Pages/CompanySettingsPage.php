@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class CompanySettingsPage extends Page implements HasForms
 {
@@ -31,9 +32,17 @@ class CompanySettingsPage extends Page implements HasForms
 
     public function mount(): void
     {
+        // Guard against a stale/broken logo path (e.g. a raw temp filename from a
+        // previously-stuck upload). If the file isn't actually on the public disk,
+        // start empty so FileUpload doesn't hang forever trying to load it.
+        $logo = tenant('company_logo');
+        if ($logo && ! Storage::disk('public')->exists($logo)) {
+            $logo = null;
+        }
+
         $this->form->fill([
             'company_name'   => tenant('company_name'),
-            'company_logo'   => tenant('company_logo'),
+            'company_logo'   => $logo,
             'subdomain'      => tenant('id'),
             'tax_id'         => tenant('tax_id'),
             'branch_id'      => tenant('branch_id'),
