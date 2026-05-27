@@ -35,6 +35,7 @@ return new class extends Migration
             $table->string('item_code')->unique();          // รหัสสินค้า SAP
             $table->string('item_name');
             $table->string('item_name_en')->nullable();
+            $table->string('barcode')->nullable();
             $table->enum('item_type', ['raw_material', 'packaging', 'mro', 'service'])
                 ->default('raw_material');
             $table->string('item_group')->nullable();

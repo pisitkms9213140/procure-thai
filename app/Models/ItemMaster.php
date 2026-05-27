@@ -12,7 +12,7 @@ class ItemMaster extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'item_code', 'item_name', 'item_name_en', 'item_type', 'item_group',
+        'item_code', 'item_name', 'item_name_en', 'barcode', 'item_type', 'item_group',
         'item_group_name', 'uom_id', 'uom_code', 'purchase_unit', 'conversion_factor',
         'default_vendor_code', 'default_warehouse_code', 'last_purchase_price',
         'min_order_qty', 'lead_time_days', 'requires_lot_tracking',

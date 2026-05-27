@@ -45,32 +45,38 @@ class ItemMasterResource extends Resource
     }
 
     public static function canCreate(): bool { return ! (auth()->user()?->isVendor() ?? false); }
-    public static function canEdit($record): bool { return ! (auth()->user()?->isVendor() ?? false); }
     public static function canDelete($record): bool { return ! (auth()->user()?->isVendor() ?? false); }
 
     public static function form(Schema $schema): Schema
     {
+        // Vendors may edit only barcode / min order qty / lead time; everything
+        // else is locked (disabled fields are not dehydrated, so values persist).
+        $locked = fn () => auth()->user()?->isVendor() ?? false;
+
         return $schema->schema([
             Section::make('ข้อมูลสินค้า')->columns(2)->schema([
                 TextInput::make('item_code')
                     ->label('รหัสสินค้า')->required()->maxLength(50)
                     ->disabled(fn ($record) => $record !== null)->dehydrated(),
                 TextInput::make('item_name')
-                    ->label('ชื่อสินค้า (TH)')->required()->maxLength(255),
+                    ->label('ชื่อสินค้า (TH)')->required()->maxLength(255)->disabled($locked),
                 TextInput::make('item_name_en')
-                    ->label('ชื่อสินค้า (EN)')->maxLength(255),
+                    ->label('ชื่อสินค้า (EN)')->maxLength(255)->disabled($locked),
+                TextInput::make('barcode')
+                    ->label('Barcode')->maxLength(50),
                 Select::make('item_type')
                     ->label('ประเภทสินค้า')
                     ->options([
                         'raw_material'=>'วัตถุดิบ','finished_goods'=>'สินค้าสำเร็จรูป',
                         'packaging'=>'บรรจุภัณฑ์','consumable'=>'วัสดุสิ้นเปลือง','service'=>'บริการ',
                     ])
-                    ->required()->default('raw_material'),
+                    ->required()->default('raw_material')->disabled($locked),
                 Select::make('item_group')->label('กลุ่มสินค้า')
                     ->options(fn () => ItemCategory::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($c) => [$c->code => "{$c->code} - {$c->name}"]))
                     ->searchable()
                     ->live()
+                    ->disabled($locked)
                     ->afterStateUpdated(function ($state, Set $set) {
                         $cat = ItemCategory::where('code', $state)->first();
                         if ($cat) {
@@ -86,35 +92,35 @@ class ItemMasterResource extends Resource
                     ])->code),
                 Select::make('item_group_name')->label('ชื่อกลุ่มสินค้า')
                     ->options(fn () => ItemCategory::query()->orderBy('name')->pluck('name', 'name'))
-                    ->searchable(),
+                    ->searchable()->disabled($locked),
                 Select::make('uom_code')->label('หน่วยคงคลัง (หน่วยเล็ก)')
                     ->options(fn () => UomMaster::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($u) => [$u->code => "{$u->code} - {$u->name}"]))
-                    ->searchable(),
+                    ->searchable()->disabled($locked),
                 Select::make('purchase_unit')->label('หน่วยซื้อ')
                     ->helperText('หน่วยที่ใช้ตอนสั่งซื้อใน PO')
                     ->options(fn () => UomMaster::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($u) => [$u->code => "{$u->code} - {$u->name}"]))
-                    ->searchable(),
+                    ->searchable()->disabled($locked),
                 TextInput::make('conversion_factor')->label('ตัวคูณ')
                     ->helperText('จำนวนหน่วยคงคลังต่อ 1 หน่วยซื้อ เช่น 1 กล่อง = 12 ชิ้น → 12')
-                    ->numeric()->minValue(0)->default(1),
+                    ->numeric()->minValue(0)->default(1)->disabled($locked),
                 Select::make('default_warehouse_code')->label('คลังเริ่มต้น')
                     ->options(fn () => WarehouseMaster::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($w) => [$w->code => "{$w->code} - {$w->name}"]))
-                    ->searchable(),
+                    ->searchable()->disabled($locked),
                 Select::make('default_vendor_code')->label('รหัส Vendor หลัก')
                     ->options(fn () => Supplier::query()->orderBy('code')
                         ->get()->mapWithKeys(fn ($s) => [$s->code => "{$s->code} - {$s->name}"]))
-                    ->searchable(),
-                TextInput::make('last_purchase_price')->label('ราคาซื้อล่าสุด')->numeric()->prefix('฿'),
+                    ->searchable()->disabled($locked), // vendor sees their own code, read-only
+                TextInput::make('last_purchase_price')->label('ราคาซื้อล่าสุด')->numeric()->prefix('฿')->disabled($locked),
                 TextInput::make('min_order_qty')->label('ปริมาณสั่งซื้อขั้นต่ำ')->numeric()->default(1),
                 TextInput::make('lead_time_days')->label('Lead Time (วัน)')->numeric()->default(0),
             ]),
             Section::make('การควบคุม')->columns(3)->schema([
-                Toggle::make('requires_lot_tracking')->label('ติดตาม Lot Number'),
-                Toggle::make('requires_expiry_date')->label('ติดตามวันหมดอายุ'),
-                Toggle::make('is_active')->label('ใช้งาน')->default(true),
+                Toggle::make('requires_lot_tracking')->label('ติดตาม Lot Number')->disabled($locked),
+                Toggle::make('requires_expiry_date')->label('ติดตามวันหมดอายุ')->disabled($locked),
+                Toggle::make('is_active')->label('ใช้งาน')->default(true)->disabled($locked),
             ]),
         ]);
     }
