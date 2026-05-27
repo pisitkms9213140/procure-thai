@@ -10,6 +10,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        __DIR__.'/../app/Console/Commands',
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         // Trust Cloudflare (and any reverse proxy) so Laravel detects HTTPS correctly.
         // Without this, Livewire generates http:// URLs → Mixed Content error.
