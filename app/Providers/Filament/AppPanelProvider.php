@@ -74,6 +74,10 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\App\Widgets\ProcurementStatsWidget::class,
             ])
             ->middleware([
+                // Resolve the tenant from the subdomain so tenant() works inside
+                // panel pages. Must run before StartSession. No-op on central
+                // domains via InitializeTenancyByDomain::$onFail (AppServiceProvider).
+                \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,

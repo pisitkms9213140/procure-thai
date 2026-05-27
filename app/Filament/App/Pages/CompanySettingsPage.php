@@ -6,7 +6,6 @@ use App\Models\Tenant;
 use App\Support\ThaiGeography;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -17,7 +16,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Illuminate\Support\HtmlString;
 
 class CompanySettingsPage extends Page implements HasForms
 {
@@ -36,6 +34,7 @@ class CompanySettingsPage extends Page implements HasForms
         $this->form->fill([
             'company_name'   => tenant('company_name'),
             'company_logo'   => tenant('company_logo'),
+            'subdomain'      => tenant('id'),
             'tax_id'         => tenant('tax_id'),
             'branch_id'      => tenant('branch_id'),
             'address'        => tenant('address'),
@@ -76,25 +75,25 @@ class CompanySettingsPage extends Page implements HasForms
                             ->required()
                             ->maxLength(255),
 
-                        // ─── Subdomain: read-only + copy button ───────────────
-                        Placeholder::make('subdomain_display')
+                        // ─── Subdomain: read-only field + copy button ─────────
+                        TextInput::make('subdomain')
                             ->label('Subdomain / ลิงก์เข้าใช้งาน')
-                            ->content(new HtmlString(
-                                '<div x-data="{copied:false}" class="flex items-center gap-2 flex-wrap">'
-                                . '<span class="font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded select-all">'
-                                . e($tenantUrl)
-                                . '</span>'
-                                . '<button type="button"'
-                                . ' x-on:click="navigator.clipboard.writeText(\'' . e($tenantUrl) . '\')'
-                                . '.then(()=>{copied=true;setTimeout(()=>{copied=false},2000)})"'
-                                . ' class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium'
-                                . ' bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600'
-                                . ' text-gray-700 dark:text-gray-200 transition-colors cursor-pointer border-0">'
-                                . '<span x-show="!copied">📋 คัดลอก</span>'
-                                . '<span x-show="copied" x-cloak class="text-green-600 dark:text-green-400">✅ คัดลอกแล้ว</span>'
-                                . '</button>'
-                                . '</div>'
-                            )),
+                            ->readOnly()
+                            ->dehydrated(false)
+                            ->suffix('.procurethai.uk')
+                            ->suffixAction(
+                                Action::make('copyLink')
+                                    ->icon('heroicon-m-clipboard-document')
+                                    ->tooltip('คัดลอกลิงก์')
+                                    ->extraAttributes([
+                                        'x-on:click' => "navigator.clipboard.writeText('" . e($tenantUrl) . "')",
+                                    ])
+                                    ->action(fn () => Notification::make()
+                                        ->success()
+                                        ->title('คัดลอกลิงก์แล้ว')
+                                        ->body($tenantUrl)
+                                        ->send()),
+                            ),
 
                         TextInput::make('tax_id')
                             ->label('เลขประจำตัวผู้เสียภาษี / Tax ID')
