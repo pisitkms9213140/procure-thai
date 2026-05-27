@@ -1,5 +1,11 @@
 <x-filament-panels::page>
-    <x-filament-panels::form wire:submit="save">
+    <form wire:submit="save">
         {{ $this->form }}
-    </x-filament-panels::form>
+
+        <div class="mt-6 flex justify-end">
+            <x-filament::button type="submit" size="lg">
+                💾 บันทึก
+            </x-filament::button>
+        </div>
+    </form>
 </x-filament-panels::page>
