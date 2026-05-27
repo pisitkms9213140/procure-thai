@@ -15,11 +15,11 @@
             @if ($userData['avatar_url'])
                 <img src="{{ $userData['avatar_url'] }}"
                      alt="{{ $userData['name'] }}"
-                     style="height: 3rem; width: 3rem; object-fit: cover; flex: none;"
+                     style="height: 5rem; width: 5rem; object-fit: cover; flex: none;"
                      class="rounded-full ring-2 ring-primary-500/30">
             @else
-                <div style="height: 3rem; width: 3rem; flex: none;"
-                     class="flex items-center justify-center rounded-full bg-primary-500 text-white text-base font-semibold select-none">
+                <div style="height: 5rem; width: 5rem; flex: none; font-size: 1.5rem;"
+                     class="flex items-center justify-center rounded-full bg-primary-500 text-white font-semibold select-none">
                     {{ $userData['initials'] }}
                 </div>
             @endif
