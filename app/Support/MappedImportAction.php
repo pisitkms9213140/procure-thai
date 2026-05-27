@@ -4,19 +4,19 @@ namespace App\Support;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Builds a Filament "Import Excel" header action with a column-mapping step:
  * upload .xlsx -> auto-read header row -> map each system field to a file
  * column (auto-guessed, required ones block submit) -> import on confirm.
  *
- * Rows are read by column INDEX (see SheetReader) so arbitrary SAP/Thai
- * headers and a leading "#" column survive.
+ * The mapping dropdown options are read directly from the uploaded file, so
+ * they stay consistent at render AND validation time (no hidden state to lose).
  */
 class MappedImportAction
 {
@@ -40,7 +40,8 @@ class MappedImportAction
                     'application/zip',
                     'application/octet-stream',
                 ])
-                ->storeFiles(false)
+                ->disk('local')
+                ->directory('imports-tmp')
                 ->required()
                 ->live()
                 ->afterStateUpdated(function ($state, Set $set) use ($fields) {
@@ -51,25 +52,17 @@ class MappedImportAction
                         $headers = [];
                     }
 
-                    $set('_headers', $headers);
-
-                    if (empty($headers)) {
-                        return;
-                    }
-
                     foreach ($fields as $f) {
-                        $set('map_' . $f['key'], SheetReader::guess($headers, $f['guess'] ?? [$f['key']]));
+                        $set('map_' . $f['key'], $headers ? SheetReader::guess($headers, $f['guess'] ?? [$f['key']]) : null);
                     }
                 }),
-
-            Hidden::make('_headers'),
         ];
 
         foreach ($fields as $f) {
             $select = Select::make('map_' . $f['key'])
                 ->label($f['label'] . (($f['required'] ?? false) ? ' *' : ''))
-                ->options(fn (Get $get) => SheetReader::optionsFromHeaders($get('_headers') ?? []))
-                ->visible(fn (Get $get) => filled($get('_headers')));
+                ->options(fn (Get $get) => SheetReader::optionsFromState($get('file')))
+                ->visible(fn (Get $get) => filled($get('file')));
 
             if ($f['required'] ?? false) {
                 $select->required();
@@ -87,14 +80,14 @@ class MappedImportAction
             ->modalSubmitActionLabel('นำเข้า')
             ->form($form)
             ->action(function (array $data) use ($fields, $persist) {
-                $file = SheetReader::fileFromState($data['file']);
-                if (! $file) {
+                $path = SheetReader::pathFromState($data['file']);
+                if (! $path) {
                     Notification::make()->danger()->title('ไม่พบไฟล์')->send();
                     return;
                 }
 
                 try {
-                    $rows = SheetReader::toRows($file);
+                    $rows = SheetReader::toRows($path);
                 } catch (\Throwable $e) {
                     Notification::make()->danger()->title('อ่านไฟล์ไม่ได้')->body($e->getMessage())->send();
                     return;
@@ -107,7 +100,6 @@ class MappedImportAction
 
                 $headers = array_map(fn ($h) => trim((string) $h), $rows[0] ?? []);
 
-                // Resolve each mapped field to a column index.
                 $cols = [];
                 foreach ($fields as $f) {
                     $label = $data['map_' . $f['key']] ?? null;
@@ -128,6 +120,16 @@ class MappedImportAction
                         $imported++;
                     } else {
                         $skipped++;
+                    }
+                }
+
+                // Remove the temporary uploaded file.
+                $stored = is_array($data['file']) ? reset($data['file']) : $data['file'];
+                if (is_string($stored) && $stored !== '') {
+                    try {
+                        Storage::disk('local')->delete($stored);
+                    } catch (\Throwable) {
+                        // ignore cleanup failure
                     }
                 }
 
