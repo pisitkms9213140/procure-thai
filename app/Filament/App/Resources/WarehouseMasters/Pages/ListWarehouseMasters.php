@@ -33,7 +33,7 @@ class ListWarehouseMasters extends ListRecords
                     ['code' => mb_strtoupper($code)],
                     [
                         'name'               => trim((string) ($v['name'] ?? '')) ?: $code,
-                        'type'               => 'normal',
+                        'type'               => 'general', // enum: raw_material|finished_goods|wip|general
                         'is_active'          => $isActive,
                         'sap_warehouse_code' => $code,
                     ]

@@ -107,8 +107,10 @@ class MappedImportAction
                     $cols[$f['key']] = $i === false ? null : $i;
                 }
 
-                $imported = 0;
-                $skipped  = 0;
+                $imported   = 0;
+                $skipped    = 0;
+                $failed     = 0;
+                $firstError = null;
 
                 foreach (array_slice($rows, 1) as $row) {
                     $values = [];
@@ -116,10 +118,17 @@ class MappedImportAction
                         $values[$key] = $idx !== null ? ($row[$idx] ?? null) : null;
                     }
 
-                    if ($persist($values)) {
-                        $imported++;
-                    } else {
-                        $skipped++;
+                    // Isolate each row so one bad record (invalid enum, duplicate
+                    // unique key, etc.) doesn't abort the whole import.
+                    try {
+                        if ($persist($values)) {
+                            $imported++;
+                        } else {
+                            $skipped++;
+                        }
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        $firstError ??= $e->getMessage();
                     }
                 }
 
@@ -133,10 +142,18 @@ class MappedImportAction
                     }
                 }
 
+                $notes = [];
+                if ($skipped) {
+                    $notes[] = "ข้าม {$skipped} แถว";
+                }
+                if ($failed) {
+                    $notes[] = "ผิดพลาด {$failed} แถว" . ($firstError ? " ({$firstError})" : '');
+                }
+
                 Notification::make()
-                    ->success()
+                    ->{$failed ? 'warning' : 'success'}()
                     ->title("นำเข้าสำเร็จ {$imported} รายการ")
-                    ->body($skipped ? "ข้าม {$skipped} แถว" : null)
+                    ->body($notes ? implode(' · ', $notes) : null)
                     ->send();
             });
     }

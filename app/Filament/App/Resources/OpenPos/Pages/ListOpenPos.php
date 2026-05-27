@@ -56,7 +56,8 @@ class ListOpenPos extends ListRecords
                         'ordered_qty'    => $ordered,
                         'received_qty'   => $received,
                         'unit_price'     => (float) ($v['unit_price'] ?? 0),
-                        'po_date'        => static::parseDate($v['po_date'] ?? null),
+                        // po_date is NOT NULL in the schema — fall back to today.
+                        'po_date'        => static::parseDate($v['po_date'] ?? null) ?? now()->format('Y-m-d'),
                         'required_date'  => static::parseDate($v['required_date'] ?? null),
                         'status'         => $received > 0 ? 'partial' : 'open',
                         'source'         => 'excel_import',
