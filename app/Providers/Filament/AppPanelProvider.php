@@ -45,7 +45,7 @@ class AppPanelProvider extends PanelProvider
                     return null;
                 }
             })
-            ->brandLogoHeight('2rem')
+            ->brandLogoHeight('2.5rem')
             ->colors([
                 'primary' => Color::Amber,
             ])
