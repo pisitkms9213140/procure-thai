@@ -26,16 +26,18 @@ class ListItemMasters extends ListRecords
                     return false;
                 }
 
-                ItemMaster::updateOrCreate(
-                    ['item_code' => mb_strtoupper($code)],
-                    [
-                        'item_name'     => trim((string) ($v['item_name'] ?? '')) ?: $code,
-                        'item_type'     => 'raw_material',
-                        'uom_code'      => trim((string) ($v['uom_code'] ?? '')) ?: null,
-                        'sap_item_code' => $code,
-                        'is_active'     => true,
-                    ]
-                );
+                // Match withTrashed so a soft-deleted item with the same code is
+                // updated/restored instead of triggering a unique-key collision.
+                $item = ItemMaster::withTrashed()->firstOrNew(['item_code' => mb_strtoupper($code)]);
+                $item->fill([
+                    'item_name'     => trim((string) ($v['item_name'] ?? '')) ?: $code,
+                    'item_type'     => 'raw_material',
+                    'uom_code'      => trim((string) ($v['uom_code'] ?? '')) ?: null,
+                    'sap_item_code' => $code,
+                    'is_active'     => true,
+                ]);
+                $item->deleted_at = null;
+                $item->save();
 
                 return true;
             }),

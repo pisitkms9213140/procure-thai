@@ -28,17 +28,19 @@ class ListSuppliers extends ListRecords
                     return false;
                 }
 
-                Supplier::updateOrCreate(
-                    ['code' => mb_strtoupper($code)],
-                    [
-                        'name'    => trim((string) ($v['name'] ?? '')) ?: $code,
-                        'tax_id'  => trim((string) ($v['tax_id'] ?? '')) ?: null,
-                        'phone'   => trim((string) ($v['phone'] ?? '')) ?: null,
-                        'email'   => trim((string) ($v['email'] ?? '')) ?: null,
-                        'type'    => 'goods',
-                        'status'  => 'active',
-                    ]
-                );
+                // Match withTrashed so a soft-deleted vendor with the same code is
+                // updated/restored instead of triggering a unique-key collision.
+                $supplier = Supplier::withTrashed()->firstOrNew(['code' => mb_strtoupper($code)]);
+                $supplier->fill([
+                    'name'   => trim((string) ($v['name'] ?? '')) ?: $code,
+                    'tax_id' => trim((string) ($v['tax_id'] ?? '')) ?: null,
+                    'phone'  => trim((string) ($v['phone'] ?? '')) ?: null,
+                    'email'  => trim((string) ($v['email'] ?? '')) ?: null,
+                    'type'   => 'goods',
+                    'status' => 'active',
+                ]);
+                $supplier->deleted_at = null;
+                $supplier->save();
 
                 return true;
             }),
