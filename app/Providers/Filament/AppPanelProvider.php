@@ -27,11 +27,25 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('app')
             ->login()
-            ->brandName(fn () => 'ProcureThai' . (
-                tenancy()->initialized && tenant('company_name')
-                    ? ' / ' . tenant('company_name')
-                    : ''
-            ))
+            ->brandName(function () {
+                try {
+                    $name = tenant('company_name');
+                    return $name ? 'ProcureThai / ' . $name : 'ProcureThai';
+                } catch (\Throwable) {
+                    return 'ProcureThai';
+                }
+            })
+            ->brandLogo(function () {
+                try {
+                    $logo = tenant('company_logo');
+                    return $logo
+                        ? \Illuminate\Support\Facades\Storage::disk('public')->url($logo)
+                        : null;
+                } catch (\Throwable) {
+                    return null;
+                }
+            })
+            ->brandLogoHeight('2rem')
             ->colors([
                 'primary' => Color::Amber,
             ])

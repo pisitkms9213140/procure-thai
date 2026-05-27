@@ -2,9 +2,11 @@
 
 namespace App\Filament\App\Pages;
 
+use App\Models\Tenant;
 use App\Support\ThaiGeography;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -15,6 +17,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class CompanySettingsPage extends Page implements HasForms
 {
@@ -31,24 +34,27 @@ class CompanySettingsPage extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
-            'company_name' => tenant('company_name'),
-            'company_logo' => tenant('company_logo'),
-            'subdomain'    => tenant('id'),
-            'tax_id'       => tenant('tax_id'),
-            'branch_id'    => tenant('branch_id'),
-            'address'      => tenant('address'),
-            'street'       => tenant('street'),
-            'province_id'  => tenant('province_id'),
-            'district_id'  => tenant('district_id'),
-            'postcode'     => tenant('postcode'),
-            'telephone'    => tenant('telephone'),
-            'email'        => tenant('email'),
-            'website'      => tenant('website'),
+            'company_name'   => tenant('company_name'),
+            'company_logo'   => tenant('company_logo'),
+            'tax_id'         => tenant('tax_id'),
+            'branch_id'      => tenant('branch_id'),
+            'address'        => tenant('address'),
+            'street'         => tenant('street'),
+            'province_id'    => tenant('province_id'),
+            'district_id'    => tenant('district_id'),
+            'subdistrict_id' => tenant('subdistrict_id'),
+            'postcode'       => tenant('postcode'),
+            'telephone'      => tenant('telephone'),
+            'email'          => tenant('email'),
+            'website'        => tenant('website'),
         ]);
     }
 
     public function form(Schema $schema): Schema
     {
+        $tenantId  = tenant('id') ?? '';
+        $tenantUrl = $tenantId . '.procurethai.uk';
+
         return $schema
             ->schema([
                 Section::make('ข้อมูลบริษัท')
@@ -70,11 +76,25 @@ class CompanySettingsPage extends Page implements HasForms
                             ->required()
                             ->maxLength(255),
 
-                        TextInput::make('subdomain')
-                            ->label('Subdomain')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->suffix('.procurethai.uk'),
+                        // ─── Subdomain: read-only + copy button ───────────────
+                        Placeholder::make('subdomain_display')
+                            ->label('Subdomain / ลิงก์เข้าใช้งาน')
+                            ->content(new HtmlString(
+                                '<div x-data="{copied:false}" class="flex items-center gap-2 flex-wrap">'
+                                . '<span class="font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded select-all">'
+                                . e($tenantUrl)
+                                . '</span>'
+                                . '<button type="button"'
+                                . ' x-on:click="navigator.clipboard.writeText(\'' . e($tenantUrl) . '\')'
+                                . '.then(()=>{copied=true;setTimeout(()=>{copied=false},2000)})"'
+                                . ' class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium'
+                                . ' bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600'
+                                . ' text-gray-700 dark:text-gray-200 transition-colors cursor-pointer border-0">'
+                                . '<span x-show="!copied">📋 คัดลอก</span>'
+                                . '<span x-show="copied" x-cloak class="text-green-600 dark:text-green-400">✅ คัดลอกแล้ว</span>'
+                                . '</button>'
+                                . '</div>'
+                            )),
 
                         TextInput::make('tax_id')
                             ->label('เลขประจำตัวผู้เสียภาษี / Tax ID')
@@ -104,6 +124,7 @@ class CompanySettingsPage extends Page implements HasForms
                             ->live()
                             ->afterStateUpdated(function (Set $set) {
                                 $set('district_id', null);
+                                $set('subdistrict_id', null);
                                 $set('postcode', null);
                             }),
 
@@ -113,7 +134,28 @@ class CompanySettingsPage extends Page implements HasForms
                             ->searchable()
                             ->live()
                             ->afterStateUpdated(function ($state, Set $set) {
-                                $set('postcode', ThaiGeography::zipForDistrict($state));
+                                $set('subdistrict_id', null);
+                                // Auto-fill postcode from district only when no subdistrict data
+                                if (! ThaiGeography::hasSubdistricts()) {
+                                    $set('postcode', ThaiGeography::zipForDistrict($state));
+                                } else {
+                                    $set('postcode', null);
+                                }
+                            }),
+
+                        Select::make('subdistrict_id')
+                            ->label('ตำบล / แขวง')
+                            ->options(fn (Get $get) => ThaiGeography::subdistricts($get('district_id')))
+                            ->searchable()
+                            ->live()
+                            ->visible(fn () => ThaiGeography::hasSubdistricts())
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                if ($state) {
+                                    $zip = ThaiGeography::zipForSubdistrict($state);
+                                    if ($zip) {
+                                        $set('postcode', $zip);
+                                    }
+                                }
                             }),
 
                         TextInput::make('postcode')
@@ -145,23 +187,33 @@ class CompanySettingsPage extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        $tenant = tenant();
+        // Use a fresh DB instance to guarantee correct VirtualColumn merge
+        $tenant = Tenant::find(tenant('id'));
 
-        $tenant->company_name = $data['company_name'];
-        $tenant->company_logo = $data['company_logo'] ?? null;
-        $tenant->tax_id       = $data['tax_id'] ?? null;
-        $tenant->branch_id    = $data['branch_id'] ?? null;
-        $tenant->address      = $data['address'] ?? null;
-        $tenant->street       = $data['street'] ?? null;
-        $tenant->province_id  = $data['province_id'] ?? null;
-        $tenant->district_id  = $data['district_id'] ?? null;
-        // Store resolved Thai names too, so document rendering needs no lookup.
-        $tenant->province     = ThaiGeography::provinceName($data['province_id'] ?? null);
-        $tenant->district     = ThaiGeography::districtName($data['province_id'] ?? null, $data['district_id'] ?? null);
-        $tenant->postcode     = $data['postcode'] ?? null;
-        $tenant->telephone    = $data['telephone'] ?? null;
-        $tenant->email        = $data['email'] ?? null;
-        $tenant->website      = $data['website'] ?? null;
+        if (! $tenant) {
+            Notification::make()->danger()->title('ไม่พบข้อมูล Tenant')->send();
+            return;
+        }
+
+        $tenant->company_name   = $data['company_name'];
+        $tenant->company_logo   = $data['company_logo'] ?? null;
+        $tenant->tax_id         = $data['tax_id'] ?? null;
+        $tenant->branch_id      = $data['branch_id'] ?? null;
+        $tenant->address        = $data['address'] ?? null;
+        $tenant->street         = $data['street'] ?? null;
+        $tenant->province_id    = $data['province_id'] ?? null;
+        $tenant->district_id    = $data['district_id'] ?? null;
+        $tenant->subdistrict_id = $data['subdistrict_id'] ?? null;
+
+        // Store resolved Thai names so document rendering needs no lookup
+        $tenant->province    = ThaiGeography::provinceName($data['province_id'] ?? null);
+        $tenant->district    = ThaiGeography::districtName($data['province_id'] ?? null, $data['district_id'] ?? null);
+        $tenant->subdistrict = ThaiGeography::subdistrictName($data['district_id'] ?? null, $data['subdistrict_id'] ?? null);
+
+        $tenant->postcode  = $data['postcode'] ?? null;
+        $tenant->telephone = $data['telephone'] ?? null;
+        $tenant->email     = $data['email'] ?? null;
+        $tenant->website   = $data['website'] ?? null;
 
         $tenant->save();
 
