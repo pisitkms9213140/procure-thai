@@ -15,6 +15,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions as ActionsContainer;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class IntegrationSettingsPage extends Page implements HasForms
@@ -54,7 +55,20 @@ class IntegrationSettingsPage extends Page implements HasForms
                             'excel'   => '📊 Excel Import / Export',
                         ])
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->afterStateUpdated(function ($state, Set $set) {
+                            if ($state === 'sap_api') {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('SAP B1 ยังไม่พร้อมใช้งาน')
+                                    ->body('ขณะนี้ระบบรองรับเฉพาะการนำเข้า/ส่งออกผ่าน Excel เท่านั้น การเชื่อมต่อ SAP B1 Service Layer อยู่ระหว่างการพัฒนา')
+                                    ->persistent()
+                                    ->send();
+
+                                // Revert — SAP mode is not selectable yet.
+                                $set('integration_mode', 'excel');
+                            }
+                        }),
                 ]),
 
                 Section::make('SAP B1 Service Layer')
