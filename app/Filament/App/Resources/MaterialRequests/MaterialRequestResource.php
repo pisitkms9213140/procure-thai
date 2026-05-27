@@ -80,6 +80,12 @@ class MaterialRequestResource extends Resource
                         TextInput::make('unit')->label('หน่วย')->default('กก.')->columnSpan(1),
                         TextInput::make('quantity')->label('จำนวน')->numeric()->required()->columnSpan(1),
                         TextInput::make('budget_price')->label('ราคาประมาณ')->numeric()->columnSpan(1),
+
+                        // ─── การยืนยันจากซัพพลายเออร์ (Supplier CF) ───
+                        TextInput::make('confirmed_unit_price')->label('ราคายืนยัน')
+                            ->helperText('ราคาที่ซัพพลายเออร์ยืนยัน')->numeric()->columnSpan(4),
+                        TextInput::make('confirmed_qty')->label('จำนวนยืนยัน')->numeric()->columnSpan(4),
+                        DatePicker::make('confirmed_delivery_date')->label('กำหนดส่ง')->columnSpan(4),
                     ]),
             ]),
         ]);
@@ -93,6 +99,13 @@ class MaterialRequestResource extends Resource
                 Tables\Columns\TextColumn::make('request_date')->label('วันที่ขอ')->date('d/m/Y')->sortable(),
                 Tables\Columns\TextColumn::make('required_date')->label('ต้องการ')->date('d/m/Y')->sortable(),
                 Tables\Columns\TextColumn::make('items_count')->counts('items')->label('รายการ'),
+                Tables\Columns\TextColumn::make('confirmed_progress')->label('ซัพพลายเออร์ยืนยัน')
+                    ->state(fn (MaterialRequest $record) => $record->items->where('status', 'quoted')->count()
+                        . '/' . $record->items->count())
+                    ->badge()
+                    ->color(fn (MaterialRequest $record) => $record->items->count() > 0
+                        && $record->items->where('status', 'quoted')->count() === $record->items->count()
+                            ? 'success' : 'gray'),
                 Tables\Columns\TextColumn::make('priority')->label('ความเร่งด่วน')->badge()
                     ->formatStateUsing(fn ($state) => ['normal' => 'ปกติ', 'urgent' => 'ด่วน', 'critical' => 'ด่วนมาก'][$state] ?? $state)
                     ->color(fn ($state) => ['normal' => 'gray', 'urgent' => 'warning', 'critical' => 'danger'][$state] ?? 'gray'),
@@ -124,8 +137,40 @@ class MaterialRequestResource extends Resource
                     ->action(function (MaterialRequest $record) {
                         $record->update(['status' => 'open']);
                         \Filament\Notifications\Notification::make()
-                            ->success()->title('ส่งขอราคาแล้ว — รอซัพพลายเออร์เสนอราคา')->send();
+                            ->success()->title('ส่งขอราคาแล้ว — รอซัพพลายเออร์ยืนยัน')->send();
                     }),
+
+                \Filament\Actions\Action::make('supplierConfirm')
+                    ->label('ยืนยันจากซัพพลายเออร์')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (MaterialRequest $record) => $record->status === 'open')
+                    ->requiresConfirmation()
+                    ->modalDescription('ทำเครื่องหมายว่าซัพพลายเออร์ยืนยันแล้ว — เฉพาะรายการที่กรอก "ราคายืนยัน" ไว้ (กรอกได้ในหน้าแก้ไข)')
+                    ->action(function (MaterialRequest $record) {
+                        $confirmed = 0;
+                        foreach ($record->items as $item) {
+                            if ($item->confirmed_unit_price !== null) {
+                                $item->update([
+                                    'status'        => 'quoted',
+                                    'confirmed_qty' => $item->confirmed_qty ?? $item->quantity,
+                                    'confirmed_at'  => now(),
+                                ]);
+                                $confirmed++;
+                            }
+                        }
+
+                        if ($confirmed === 0) {
+                            \Filament\Notifications\Notification::make()->warning()
+                                ->title('ยังไม่มีรายการที่กรอกราคายืนยัน')
+                                ->body('กรุณาแก้ไขใบขอซื้อแล้วกรอก "ราคายืนยัน" ก่อน')->send();
+                            return;
+                        }
+
+                        \Filament\Notifications\Notification::make()->success()
+                            ->title("บันทึกการยืนยันจากซัพพลายเออร์ {$confirmed} รายการ")->send();
+                    }),
+
                 EditAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);

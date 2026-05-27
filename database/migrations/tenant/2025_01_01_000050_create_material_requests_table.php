@@ -32,6 +32,11 @@ return new class extends Migration
             $table->string('unit')->default('กก.');
             $table->decimal('quantity', 15, 4);
             $table->decimal('budget_price', 15, 4)->nullable(); // ราคาประมาณ
+            $table->decimal('confirmed_unit_price', 15, 4)->nullable(); // ราคาที่ซัพพลายเออร์ยืนยัน
+            $table->decimal('confirmed_qty', 15, 4)->nullable();
+            $table->date('confirmed_delivery_date')->nullable();
+            $table->text('supplier_note')->nullable();
+            $table->timestamp('confirmed_at')->nullable();
             $table->enum('status', ['pending', 'quoted', 'approved', 'cancelled'])
                 ->default('pending');
             $table->text('notes')->nullable();
