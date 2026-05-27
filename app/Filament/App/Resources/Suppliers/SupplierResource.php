@@ -303,6 +303,14 @@ class SupplierResource extends Resource
                         ->requiresConfirmation()
                         ->modalDescription('สร้างบัญชีผู้ใช้สิทธิ์ Vendor ให้ซัพพลายเออร์ที่เลือก (ตั้งรหัสผ่านสุ่ม — ใช้ "รีเซ็ตรหัสผ่าน" เพื่อดู/แจกรหัสภายหลัง)')
                         ->action(function (\Illuminate\Support\Collection $records) {
+                            // Pre-load existing users (avoid ~1,500 per-row queries).
+                            $existingCodes  = User::whereNotNull('vendor_code')->pluck('vendor_code')->flip();
+                            $existingEmails = User::pluck('email')->map(fn ($e) => strtolower((string) $e))->flip();
+
+                            // Hash ONCE — bcrypt is the bottleneck; 778 hashes time out.
+                            // These are throwaway placeholders, reset per-vendor via "รีเซ็ตรหัสผ่าน".
+                            $placeholderHash = Hash::make(Str::password(8, true, true, false));
+
                             $created    = 0;
                             $skipped    = 0;
                             $failed     = 0;
@@ -310,21 +318,20 @@ class SupplierResource extends Resource
 
                             foreach ($records as $supplier) {
                                 $email = $supplier->vendorEmail();
-                                if ($supplier->vendorUser() || User::where('email', $email)->exists()) {
+                                if ($existingCodes->has($supplier->code) || $existingEmails->has(strtolower($email))) {
                                     $skipped++;
                                     continue;
                                 }
 
-                                // Isolate each row so a duplicate email (codes that
-                                // collapse to the same value) doesn't abort the batch.
                                 try {
                                     User::create([
                                         'name'        => $supplier->name,
                                         'email'       => $email,
                                         'role'        => User::ROLE_VENDOR,
                                         'vendor_code' => $supplier->code,
-                                        'password'    => Hash::make(Str::password(8, true, true, false)),
+                                        'password'    => $placeholderHash,
                                     ]);
+                                    $existingEmails->put(strtolower($email), true); // guard in-batch dupes
                                     $created++;
                                 } catch (\Throwable $e) {
                                     $failed++;
