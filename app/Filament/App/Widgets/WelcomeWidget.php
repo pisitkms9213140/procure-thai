@@ -8,7 +8,7 @@ use Filament\Widgets\Widget;
 class WelcomeWidget extends Widget
 {
     protected string $view    = 'filament.app.widgets.welcome-widget';
-    protected static int $sort = -3; // above stats
+    protected static ?int $sort = -3; // above stats
     protected static bool $isLazy = false;
 
     public function getUserData(): array
