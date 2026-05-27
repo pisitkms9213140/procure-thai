@@ -30,3 +30,13 @@ Route::get('/login', function () {
 Route::get('/masuk', function () {
     return view('central-login');
 })->name('masuk');
+
+// Locale switch (TH ↔ EN). Defined here in web.php because routes/tenant.php
+// is not loaded (TenancyServiceProvider is intentionally not registered).
+// Only sets a session value + redirects, so it needs no tenant DB context.
+Route::get('/locale/{lang}', function (string $lang) {
+    abort_unless(in_array($lang, ['th', 'en']), 404);
+    session(['locale' => $lang]);
+    app()->setLocale($lang);
+    return redirect()->back()->fallback('/app');
+})->name('locale.switch');
