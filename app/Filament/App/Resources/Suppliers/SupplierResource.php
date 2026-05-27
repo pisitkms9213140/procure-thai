@@ -303,26 +303,46 @@ class SupplierResource extends Resource
                         ->requiresConfirmation()
                         ->modalDescription('สร้างบัญชีผู้ใช้สิทธิ์ Vendor ให้ซัพพลายเออร์ที่เลือก (ตั้งรหัสผ่านสุ่ม — ใช้ "รีเซ็ตรหัสผ่าน" เพื่อดู/แจกรหัสภายหลัง)')
                         ->action(function (\Illuminate\Support\Collection $records) {
-                            $created = 0;
-                            $skipped = 0;
+                            $created    = 0;
+                            $skipped    = 0;
+                            $failed     = 0;
+                            $firstError = null;
+
                             foreach ($records as $supplier) {
                                 $email = $supplier->vendorEmail();
                                 if ($supplier->vendorUser() || User::where('email', $email)->exists()) {
                                     $skipped++;
                                     continue;
                                 }
-                                User::create([
-                                    'name'        => $supplier->name,
-                                    'email'       => $email,
-                                    'role'        => User::ROLE_VENDOR,
-                                    'vendor_code' => $supplier->code,
-                                    'password'    => Hash::make(Str::password(8, true, true, false)),
-                                ]);
-                                $created++;
+
+                                // Isolate each row so a duplicate email (codes that
+                                // collapse to the same value) doesn't abort the batch.
+                                try {
+                                    User::create([
+                                        'name'        => $supplier->name,
+                                        'email'       => $email,
+                                        'role'        => User::ROLE_VENDOR,
+                                        'vendor_code' => $supplier->code,
+                                        'password'    => Hash::make(Str::password(8, true, true, false)),
+                                    ]);
+                                    $created++;
+                                } catch (\Throwable $e) {
+                                    $failed++;
+                                    $firstError ??= $e->getMessage();
+                                }
                             }
-                            Notification::make()->success()
+
+                            $notes = [];
+                            if ($skipped) {
+                                $notes[] = "ข้าม {$skipped} ราย (มีบัญชีแล้ว)";
+                            }
+                            if ($failed) {
+                                $notes[] = "ผิดพลาด {$failed} ราย" . ($firstError ? " ({$firstError})" : '');
+                            }
+
+                            Notification::make()->{$failed ? 'warning' : 'success'}()
                                 ->title("สร้างผู้ใช้ Vendor {$created} ราย")
-                                ->body($skipped ? "ข้าม {$skipped} ราย (มีบัญชีแล้ว)" : null)
+                                ->body($notes ? implode(' · ', $notes) : null)
                                 ->send();
                         }),
                     DeleteBulkAction::make(),
