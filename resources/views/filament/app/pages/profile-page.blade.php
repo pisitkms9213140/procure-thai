@@ -10,30 +10,58 @@
     </form>
 
     @if (auth()->user()->isManager())
-        {{-- วาดลายเซ็นด้วยเมาส์/นิ้ว (ทางเลือกนอกเหนือจากอัปโหลด) --}}
         <div
             x-data="signaturePad()"
             class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
         >
-            <h3 class="text-base font-semibold text-gray-950 dark:text-white">หรือวาดลายเซ็น</h3>
+            <h3 class="text-base font-semibold text-gray-950 dark:text-white">ลายเซ็นดิจิทัล</h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                วาดในกรอบด้านล่างด้วยเมาส์หรือนิ้ว แล้วกด “บันทึกลายเซ็นที่วาด”
+                ใช้ประทับบนใบสั่งซื้อ (PO) เมื่อผู้จัดการอนุมัติ — อัปโหลดรูป หรือ วาดด้วยเมาส์/นิ้ว (แนะนำ PNG พื้นหลังโปร่งใส)
             </p>
 
-            <canvas
-                x-ref="canvas"
-                width="500"
-                height="200"
-                class="mt-3 w-full max-w-lg touch-none rounded-lg border border-gray-300 bg-white dark:border-gray-700"
-            ></canvas>
+            {{-- ลายเซ็นปัจจุบัน --}}
+            @if ($signatureUrl)
+                <div class="mt-4">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">ลายเซ็นปัจจุบัน</p>
+                    <div class="mt-1 flex items-center gap-3">
+                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($signatureUrl) }}"
+                             alt="signature"
+                             class="h-20 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700">
+                        <x-filament::button type="button" color="danger" size="sm" wire:click="removeSignature">
+                            ลบลายเซ็น
+                        </x-filament::button>
+                    </div>
+                </div>
+            @endif
 
-            <div class="mt-3 flex gap-2">
-                <x-filament::button type="button" color="gray" size="sm" x-on:click="clearPad()">
-                    ล้าง
-                </x-filament::button>
-                <x-filament::button type="button" color="primary" size="sm" x-on:click="savePad()">
-                    บันทึกลายเซ็นที่วาด
-                </x-filament::button>
+            <div class="mt-4 grid gap-6 md:grid-cols-2">
+                {{-- อัปโหลด --}}
+                <div>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">อัปโหลดรูปลายเซ็น</p>
+                    <input type="file" x-ref="file" accept="image/png,image/jpeg" class="hidden" x-on:change="uploadFile($event)">
+                    <x-filament::button type="button" color="gray" class="mt-2" x-on:click="$refs.file.click()">
+                        เลือกไฟล์รูป
+                    </x-filament::button>
+                </div>
+
+                {{-- วาด --}}
+                <div>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">วาดลายเซ็น</p>
+                    <canvas
+                        x-ref="canvas"
+                        width="500"
+                        height="200"
+                        class="mt-2 w-full max-w-md touch-none cursor-crosshair rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800"
+                    ></canvas>
+                    <div class="mt-2 flex gap-2">
+                        <x-filament::button type="button" color="gray" size="sm" x-on:click="clearPad()">
+                            ล้าง
+                        </x-filament::button>
+                        <x-filament::button type="button" color="primary" size="sm" x-on:click="savePad()">
+                            บันทึกลายเซ็นที่วาด
+                        </x-filament::button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -45,8 +73,9 @@
                     init() {
                         const c = this.$refs.canvas;
                         this.ctx = c.getContext('2d');
-                        this.ctx.lineWidth = 2;
+                        this.ctx.lineWidth = 2.5;
                         this.ctx.lineCap = 'round';
+                        this.ctx.lineJoin = 'round';
                         this.ctx.strokeStyle = '#111827';
 
                         const pos = (e) => {
@@ -76,11 +105,17 @@
                         const c = this.$refs.canvas;
                         const blank = document.createElement('canvas');
                         blank.width = c.width; blank.height = c.height;
-                        if (c.toDataURL() === blank.toDataURL()) {
-                            return; // nothing drawn
-                        }
-                        this.$wire.saveDrawnSignature(c.toDataURL('image/png'));
+                        if (c.toDataURL() === blank.toDataURL()) { return; } // nothing drawn
+                        this.$wire.saveSignatureData(c.toDataURL('image/png'));
                         this.clearPad();
+                    },
+                    uploadFile(e) {
+                        const f = e.target.files[0];
+                        if (!f) return;
+                        const reader = new FileReader();
+                        reader.onload = () => this.$wire.saveSignatureData(reader.result);
+                        reader.readAsDataURL(f);
+                        e.target.value = '';
                     },
                 };
             }

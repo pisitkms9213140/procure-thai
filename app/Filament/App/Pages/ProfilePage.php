@@ -28,17 +28,21 @@ class ProfilePage extends Page implements HasForms
 
     public ?array $data = [];
 
+    /** Current signature path — managed outside the form (upload or draw). */
+    public ?string $signatureUrl = null;
+
     public function mount(): void
     {
         /** @var User $user */
         $user = auth()->user();
 
+        $this->signatureUrl = $user->signature_url;
+
         $this->form->fill([
-            'name'          => $user->name,
-            'email'         => $user->email,
-            'phone'         => $user->phone,
-            'avatar_url'    => $user->avatar_url,
-            'signature_url' => $user->signature_url,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'phone'      => $user->phone,
+            'avatar_url' => $user->avatar_url,
         ]);
     }
 
@@ -94,19 +98,6 @@ class ProfilePage extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
-                Section::make('ลายเซ็นดิจิทัล')
-                    ->description('ใช้ประทับบนใบสั่งซื้อ (PO) เมื่อผู้จัดการอนุมัติ แนะนำ PNG พื้นหลังโปร่งใส')
-                    ->visible(fn () => $user->isManager())
-                    ->schema([
-                        FileUpload::make('signature_url')
-                            ->label('')
-                            ->image()
-                            ->disk('public')
-                            ->directory('signatures')
-                            ->maxSize(1024)
-                            ->columnSpanFull(),
-                    ]),
-
                 Section::make('เปลี่ยนรหัสผ่าน')
                     ->description('เว้นว่างไว้หากไม่ต้องการเปลี่ยน')
                     ->columns(2)
@@ -139,11 +130,10 @@ class ProfilePage extends Page implements HasForms
         $user = auth()->user();
 
         $update = [
-            'name'          => $data['name'],
-            'email'         => $data['email'],
-            'phone'         => $data['phone'] ?? null,
-            'avatar_url'    => $data['avatar_url'] ?? null,
-            'signature_url' => $data['signature_url'] ?? null,
+            'name'       => $data['name'],
+            'email'      => $data['email'],
+            'phone'      => $data['phone'] ?? null,
+            'avatar_url' => $data['avatar_url'] ?? null,
         ];
 
         if (!empty($data['password'])) {
@@ -158,28 +148,37 @@ class ProfilePage extends Page implements HasForms
             ->send();
     }
 
-    /** Save a hand-drawn signature (base64 PNG data URL from the canvas pad). */
-    public function saveDrawnSignature(string $dataUrl): void
+    /** Save a signature from a base64 image data URL — used by both upload and draw. */
+    public function saveSignatureData(string $dataUrl): void
     {
-        if (! str_starts_with($dataUrl, 'data:image')) {
+        if (! preg_match('#^data:image/(png|jpe?g);base64,#i', $dataUrl, $m)) {
+            Notification::make()->danger()->title('ไฟล์ลายเซ็นไม่ถูกต้อง (รองรับ PNG/JPG)')->send();
             return;
         }
 
+        $ext    = strtolower($m[1]) === 'png' ? 'png' : 'jpg';
         $b64    = substr($dataUrl, (int) strpos($dataUrl, ',') + 1);
         $binary = base64_decode($b64, true);
 
-        if ($binary === false || $binary === '') {
-            Notification::make()->danger()->title('ลายเซ็นไม่ถูกต้อง')->send();
+        if ($binary === false || $binary === '' || strlen($binary) > 2_000_000) {
+            Notification::make()->danger()->title('ไฟล์ลายเซ็นไม่ถูกต้องหรือใหญ่เกินไป (สูงสุด 2MB)')->send();
             return;
         }
 
-        $path = 'signatures/sig_' . auth()->id() . '_' . time() . '.png';
+        $path = 'signatures/sig_' . auth()->id() . '_' . time() . '.' . $ext;
         Storage::disk('public')->put($path, $binary);
 
         auth()->user()->update(['signature_url' => $path]);
-        $this->data['signature_url'] = $path; // reflect in the upload preview
+        $this->signatureUrl = $path;
 
-        Notification::make()->success()->title('บันทึกลายเซ็นที่วาดแล้ว')->send();
+        Notification::make()->success()->title('บันทึกลายเซ็นแล้ว')->send();
+    }
+
+    public function removeSignature(): void
+    {
+        auth()->user()->update(['signature_url' => null]);
+        $this->signatureUrl = null;
+        Notification::make()->success()->title('ลบลายเซ็นแล้ว')->send();
     }
 
     protected function getHeaderActions(): array
