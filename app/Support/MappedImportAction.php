@@ -31,7 +31,15 @@ class MappedImportAction
         $form = [
             FileUpload::make('file')
                 ->label('ไฟล์ Excel (.xlsx)')
-                ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                // Linux finfo frequently reports .xlsx as application/zip (xlsx is
+                // a zip), so accept those variants too or server-side mime
+                // validation rejects valid files.
+                ->acceptedFileTypes([
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel',
+                    'application/zip',
+                    'application/octet-stream',
+                ])
                 ->storeFiles(false)
                 ->required()
                 ->live()
