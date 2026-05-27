@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,15 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        // Allow InitializeTenancyByDomain to pass through on central domains
+        // instead of throwing TenantCouldNotBeIdentifiedException.
+        InitializeTenancyByDomain::$onFail = function ($exception, $request, $next) {
+            if (in_array($request->getHost(), config('tenancy.central_domains', []))) {
+                return $next($request);
+            }
+            throw $exception;
+        };
 
         // Apply stored locale (TH ↔ EN toggle).
         // Wrapped in try/catch so it doesn't break CLI/artisan where no session exists.
