@@ -32,4 +32,19 @@ class Supplier extends Model
         $next = $last ? ((int) substr($last->code, 4)) + 1 : 1;
         return 'SUP-' . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
+
+    /** Synthesized login email for this vendor: code without hyphen/space @ subdomain. */
+    public function vendorEmail(): string
+    {
+        $id   = strtolower(preg_replace('/[^a-z0-9]/i', '', (string) $this->code));
+        $host = (tenant('id') ?: 'app') . '.procurethai.uk';
+
+        return $id . '@' . $host;
+    }
+
+    /** The linked vendor-role user (if any). */
+    public function vendorUser(): ?User
+    {
+        return User::where('vendor_code', $this->code)->first();
+    }
 }

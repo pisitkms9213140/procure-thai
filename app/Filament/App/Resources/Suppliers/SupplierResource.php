@@ -6,15 +6,22 @@ use App\Filament\App\Resources\Suppliers\Pages\CreateSupplier;
 use App\Filament\App\Resources\Suppliers\Pages\EditSupplier;
 use App\Filament\App\Resources\Suppliers\Pages\ListSuppliers;
 use App\Models\Supplier;
+use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -90,7 +97,8 @@ class SupplierResource extends Resource
                             'blacklisted' => 'บัญชีดำ',
                         ])
                         ->default('active')
-                        ->required(),
+                        ->required()
+                        ->disabled(fn () => auth()->user()?->isVendor() ?? false),
 
                     TextInput::make('payment_terms')
                         ->label('เงื่อนไขการชำระเงิน')
@@ -129,6 +137,16 @@ class SupplierResource extends Resource
                         ->rows(2)
                         ->columnSpanFull(),
                 ])->columns(2),
+
+            Section::make('ข้อมูลบัญชีผู้ใช้ (Account)')
+                ->description('บัญชีสำหรับซัพพลายเออร์เข้าระบบ — ใช้ปุ่ม "รีเซ็ตรหัสผ่าน" (แอดมิน) หรือ "เปลี่ยนรหัสผ่าน" (ซัพพลายเออร์)')
+                ->visible(fn ($record) => $record !== null)
+                ->schema([
+                    Placeholder::make('account_username')
+                        ->label('Username (อีเมลเข้าระบบ)')
+                        ->content(fn ($record) => $record?->vendorUser()?->email
+                            ?? 'ยังไม่มีบัญชี — ใช้ "สร้างผู้ใช้ Vendor" หรือ "รีเซ็ตรหัสผ่าน"'),
+                ]),
         ]);
     }
 
@@ -213,9 +231,102 @@ class SupplierResource extends Resource
                         'both' => 'สินค้า+บริการ',
                     ]),
             ])
-            ->actions([EditAction::make()])
+            ->actions([
+                EditAction::make(),
+
+                // Admin: reset / create the vendor login, show the new password once.
+                Action::make('resetVendorPassword')
+                    ->label('รีเซ็ตรหัสผ่าน')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->visible(fn () => ! (auth()->user()?->isVendor() ?? false))
+                    ->requiresConfirmation()
+                    ->modalDescription('สร้างบัญชี (ถ้ายังไม่มี) และตั้งรหัสผ่านใหม่ 8 หลัก — จะแสดงเพียงครั้งเดียว')
+                    ->action(function (Supplier $record) {
+                        $email = $record->vendorEmail();
+                        $user  = $record->vendorUser();
+
+                        if (! $user && User::where('email', $email)->exists()) {
+                            Notification::make()->danger()->title('อีเมลซ้ำ')->body($email)->send();
+                            return;
+                        }
+
+                        $password = Str::password(8, true, true, false);
+
+                        if ($user) {
+                            $user->update(['password' => Hash::make($password)]);
+                        } else {
+                            $user = User::create([
+                                'name'        => $record->name,
+                                'email'       => $email,
+                                'role'        => User::ROLE_VENDOR,
+                                'vendor_code' => $record->code,
+                                'password'    => Hash::make($password),
+                            ]);
+                        }
+
+                        Notification::make()->success()->title('รีเซ็ตรหัสผ่านแล้ว')
+                            ->body("Username: {$user->email}\nPassword: {$password}")
+                            ->persistent()->send();
+                    }),
+
+                // Vendor: change their own password (verify old → set new).
+                Action::make('changePassword')
+                    ->label('เปลี่ยนรหัสผ่าน')
+                    ->icon('heroicon-o-lock-closed')
+                    ->visible(fn (Supplier $record) => (auth()->user()?->isVendor() ?? false)
+                        && auth()->user()->vendor_code === $record->code)
+                    ->form([
+                        TextInput::make('old_password')->label('รหัสผ่านเดิม')->password()->required(),
+                        TextInput::make('new_password')->label('รหัสผ่านใหม่')->password()->required()->minLength(8),
+                        TextInput::make('new_password_confirmation')->label('ยืนยันรหัสผ่านใหม่')
+                            ->password()->required()->same('new_password'),
+                    ])
+                    ->action(function (array $data) {
+                        $user = auth()->user();
+                        if (! Hash::check($data['old_password'], $user->password)) {
+                            Notification::make()->danger()->title('รหัสผ่านเดิมไม่ถูกต้อง')->send();
+                            return;
+                        }
+                        $user->update(['password' => Hash::make($data['new_password'])]);
+                        Notification::make()->success()->title('เปลี่ยนรหัสผ่านแล้ว')->send();
+                    }),
+            ])
             ->bulkActions([
-                BulkActionGroup::make([DeleteBulkAction::make()]),
+                BulkActionGroup::make([
+                    // Bulk-create vendor logins (username = code w/o hyphen @ subdomain).
+                    BulkAction::make('createVendorUsers')
+                        ->label('สร้างผู้ใช้ Vendor')
+                        ->icon('heroicon-o-user-plus')
+                        ->color('success')
+                        ->visible(fn () => ! (auth()->user()?->isVendor() ?? false))
+                        ->requiresConfirmation()
+                        ->modalDescription('สร้างบัญชีผู้ใช้สิทธิ์ Vendor ให้ซัพพลายเออร์ที่เลือก (ตั้งรหัสผ่านสุ่ม — ใช้ "รีเซ็ตรหัสผ่าน" เพื่อดู/แจกรหัสภายหลัง)')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $created = 0;
+                            $skipped = 0;
+                            foreach ($records as $supplier) {
+                                $email = $supplier->vendorEmail();
+                                if ($supplier->vendorUser() || User::where('email', $email)->exists()) {
+                                    $skipped++;
+                                    continue;
+                                }
+                                User::create([
+                                    'name'        => $supplier->name,
+                                    'email'       => $email,
+                                    'role'        => User::ROLE_VENDOR,
+                                    'vendor_code' => $supplier->code,
+                                    'password'    => Hash::make(Str::password(8, true, true, false)),
+                                ]);
+                                $created++;
+                            }
+                            Notification::make()->success()
+                                ->title("สร้างผู้ใช้ Vendor {$created} ราย")
+                                ->body($skipped ? "ข้าม {$skipped} ราย (มีบัญชีแล้ว)" : null)
+                                ->send();
+                        }),
+                    DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
