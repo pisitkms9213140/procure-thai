@@ -36,8 +36,7 @@ return new class extends Migration
             $table->string('item_name');
             $table->string('item_name_en')->nullable();
             $table->string('barcode')->nullable();
-            $table->enum('item_type', ['raw_material', 'packaging', 'mro', 'service'])
-                ->default('raw_material');
+            $table->string('item_type', 32)->default('raw_material'); // raw_material|packaging|mro|service|finished_goods|consumable
             $table->string('item_group')->nullable();
             $table->string('item_group_name')->nullable();
             $table->foreignId('uom_id')->nullable()->constrained('uom_masters')->nullOnDelete();
