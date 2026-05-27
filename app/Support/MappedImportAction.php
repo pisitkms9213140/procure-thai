@@ -36,8 +36,19 @@ class MappedImportAction
                 ->required()
                 ->live()
                 ->afterStateUpdated(function ($state, Set $set) use ($fields) {
-                    $headers = SheetReader::headersFromState($state);
+                    try {
+                        $headers = SheetReader::headersFromState($state);
+                    } catch (\Throwable $e) {
+                        Notification::make()->danger()->title('อ่านไฟล์ไม่ได้')->body($e->getMessage())->send();
+                        $headers = [];
+                    }
+
                     $set('_headers', $headers);
+
+                    if (empty($headers)) {
+                        return;
+                    }
+
                     foreach ($fields as $f) {
                         $set('map_' . $f['key'], SheetReader::guess($headers, $f['guess'] ?? [$f['key']]));
                     }
@@ -74,7 +85,18 @@ class MappedImportAction
                     return;
                 }
 
-                $rows    = SheetReader::toRows($file);
+                try {
+                    $rows = SheetReader::toRows($file);
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()->title('อ่านไฟล์ไม่ได้')->body($e->getMessage())->send();
+                    return;
+                }
+
+                if (count($rows) < 2) {
+                    Notification::make()->warning()->title('ไม่พบข้อมูลในไฟล์')->send();
+                    return;
+                }
+
                 $headers = array_map(fn ($h) => trim((string) $h), $rows[0] ?? []);
 
                 // Resolve each mapped field to a column index.
