@@ -16,25 +16,47 @@ class ListItemMasters extends ListRecords
     {
         return [
             CreateAction::make(),
-            MappedImportAction::make('นำเข้ารายการสินค้าจาก Excel', [
-                ['key' => 'item_code', 'label' => 'รหัสสินค้า (item_code)', 'required' => true, 'guess' => ['item_code', 'code', 'รหัส']],
-                ['key' => 'item_name', 'label' => 'ชื่อสินค้า (item_name)', 'guess' => ['item_name', 'name', 'ชื่อ']],
-                ['key' => 'uom_code', 'label' => 'หน่วยนับ (uom_code)', 'guess' => ['uom_code', 'uom', 'หน่วย']],
-            ], function (array $v): bool {
+            MappedImportAction::make('นำเข้ารายการสินค้าจาก Excel (SAP)', [
+                ['key' => 'item_code', 'label' => 'รหัสสินค้า (Item No.)', 'required' => true, 'guess' => ['item no', 'item code', 'รหัสสินค้า', 'รหัส']],
+                ['key' => 'item_name', 'label' => 'ชื่อสินค้า (Item Description)', 'guess' => ['item description', 'description', 'ชื่อ']],
+                ['key' => 'item_name_en', 'label' => 'ชื่อ EN (Foreign Name)', 'guess' => ['foreign name', 'english']],
+                ['key' => 'old_item_code', 'label' => 'รหัสสินค้าเก่า', 'guess' => ['เก่า', 'old']],
+                ['key' => 'item_group', 'label' => 'กลุ่มสินค้า (Item Group)', 'guess' => ['item group']],
+                ['key' => 'item_group_name', 'label' => 'ชื่อกลุ่มสินค้า (Group Name)', 'guess' => ['group name']],
+                ['key' => 'uom_code', 'label' => 'หน่วยคงคลัง (กลุ่มหน่วยนับ)', 'guess' => ['กลุ่มหน่วยนับ', 'inventory unit', 'หน่วยสต๊อค']],
+                ['key' => 'purchase_unit', 'label' => 'หน่วยซื้อ', 'guess' => ['หน่วยซื้อ', 'purchase uom']],
+                ['key' => 'conversion_factor', 'label' => 'ตัวคูณ (Purchase Unit)', 'guess' => ['purchase unit']],
+                ['key' => 'default_warehouse_code', 'label' => 'คลังเริ่มต้น (DfWHS)', 'guess' => ['dfwhs', 'default whs', 'คลัง']],
+                ['key' => 'lead_time_days', 'label' => 'Lead Time', 'guess' => ['lead time']],
+                ['key' => 'is_active', 'label' => 'สถานะใช้งาน (Active Y/N)', 'guess' => ['active']],
+                ['key' => 'batch', 'label' => 'ติดตาม Batch (Y/N)', 'guess' => ['batch']],
+            ], function (array $v, array $raw = []): bool {
                 $code = trim((string) ($v['item_code'] ?? ''));
                 if ($code === '') {
                     return false;
                 }
 
+                $factor = (float) ($v['conversion_factor'] ?? 0);
+
                 // Match withTrashed so a soft-deleted item with the same code is
                 // updated/restored instead of triggering a unique-key collision.
                 $item = ItemMaster::withTrashed()->firstOrNew(['item_code' => mb_strtoupper($code)]);
                 $item->fill([
-                    'item_name'     => trim((string) ($v['item_name'] ?? '')) ?: $code,
-                    'item_type'     => 'raw_material',
-                    'uom_code'      => trim((string) ($v['uom_code'] ?? '')) ?: null,
-                    'sap_item_code' => $code,
-                    'is_active'     => true,
+                    'item_name'              => trim((string) ($v['item_name'] ?? '')) ?: $code,
+                    'item_name_en'           => trim((string) ($v['item_name_en'] ?? '')) ?: null,
+                    'item_type'              => 'raw_material',
+                    'item_group'             => trim((string) ($v['item_group'] ?? '')) ?: null,
+                    'item_group_name'        => trim((string) ($v['item_group_name'] ?? '')) ?: null,
+                    'uom_code'               => trim((string) ($v['uom_code'] ?? '')) ?: null,
+                    'purchase_unit'          => trim((string) ($v['purchase_unit'] ?? '')) ?: null,
+                    'conversion_factor'      => $factor > 0 ? $factor : 1,
+                    'default_warehouse_code' => trim((string) ($v['default_warehouse_code'] ?? '')) ?: null,
+                    'old_item_code'          => trim((string) ($v['old_item_code'] ?? '')) ?: null,
+                    'lead_time_days'         => (int) ($v['lead_time_days'] ?? 0),
+                    'requires_lot_tracking'  => strtoupper(trim((string) ($v['batch'] ?? ''))) === 'Y',
+                    'is_active'              => strtoupper(trim((string) ($v['is_active'] ?? 'Y'))) !== 'N',
+                    'sap_item_code'          => $code,
+                    'sap_raw'                => $raw ?: null,
                 ]);
                 $item->deleted_at = null;
                 $item->save();

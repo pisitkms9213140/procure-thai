@@ -29,8 +29,14 @@ return new class extends Migration
             $table->enum('item_type', ['raw_material', 'packaging', 'mro', 'service'])
                 ->default('raw_material');
             $table->string('item_group')->nullable();
+            $table->string('item_group_name')->nullable();
             $table->foreignId('uom_id')->nullable()->constrained('uom_masters')->nullOnDelete();
-            $table->string('uom_code')->nullable();         // เก็บ text ด้วยเผื่อ UoM ยังไม่ sync
+            $table->string('uom_code')->nullable();         // หน่วยคงคลัง (กลุ่มหน่วยนับ)
+            $table->string('purchase_unit')->nullable();    // หน่วยซื้อ
+            $table->decimal('conversion_factor', 15, 4)->default(1); // ตัวคูณ: หน่วยคงคลังต่อ 1 หน่วยซื้อ
+            $table->string('default_warehouse_code')->nullable();
+            $table->string('old_item_code')->nullable();    // รหัสสินค้าเก่า
+            $table->json('sap_raw')->nullable();            // full SAP export row
             $table->string('default_vendor_code')->nullable();
             $table->decimal('last_purchase_price', 15, 4)->nullable();
             $table->decimal('min_order_qty', 15, 4)->default(1);

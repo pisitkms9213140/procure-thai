@@ -23,8 +23,9 @@ class MappedImportAction
     /**
      * @param  string  $heading  Modal heading.
      * @param  array<int,array{key:string,label:string,required?:bool,guess?:array<int,string>}>  $fields
-     * @param  callable(array<string,mixed>):bool  $persist  Receives [fieldKey => cellValue] for one row;
-     *                                                        return true if imported, false if skipped.
+     * @param  callable(array<string,mixed>,array<string,mixed>):bool  $persist  Receives
+     *         [fieldKey => mappedCellValue] and the full raw row [header => cellValue] for one
+     *         row; return true if imported, false if skipped.
      */
     public static function make(string $heading, array $fields, callable $persist): Action
     {
@@ -118,10 +119,18 @@ class MappedImportAction
                         $values[$key] = $idx !== null ? ($row[$idx] ?? null) : null;
                     }
 
+                    // Full row keyed by header, so importers can keep every column.
+                    $raw = [];
+                    foreach ($headers as $i => $label) {
+                        if ($label !== '') {
+                            $raw[$label] = $row[$i] ?? null;
+                        }
+                    }
+
                     // Isolate each row so one bad record (invalid enum, duplicate
                     // unique key, etc.) doesn't abort the whole import.
                     try {
-                        if ($persist($values)) {
+                        if ($persist($values, $raw)) {
                             $imported++;
                         } else {
                             $skipped++;

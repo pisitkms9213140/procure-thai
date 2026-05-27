@@ -12,9 +12,10 @@ class ItemMaster extends Model
 
     protected $fillable = [
         'item_code', 'item_name', 'item_name_en', 'item_type', 'item_group',
-        'uom_id', 'uom_code', 'default_vendor_code', 'last_purchase_price',
+        'item_group_name', 'uom_id', 'uom_code', 'purchase_unit', 'conversion_factor',
+        'default_vendor_code', 'default_warehouse_code', 'last_purchase_price',
         'min_order_qty', 'lead_time_days', 'requires_lot_tracking',
-        'requires_expiry_date', 'is_active', 'sap_item_code',
+        'requires_expiry_date', 'is_active', 'sap_item_code', 'old_item_code', 'sap_raw',
     ];
 
     protected $casts = [
@@ -23,7 +24,17 @@ class ItemMaster extends Model
         'is_active'             => 'boolean',
         'last_purchase_price'   => 'decimal:4',
         'min_order_qty'         => 'decimal:4',
+        'conversion_factor'     => 'decimal:4',
+        'sap_raw'               => 'array',
     ];
+
+    /** Convert an inventory (base-unit) quantity into purchase units, rounded up. */
+    public function toPurchaseQty(float $baseQty): float
+    {
+        $factor = (float) ($this->conversion_factor ?: 1);
+
+        return $factor > 0 ? ceil($baseQty / $factor) : $baseQty;
+    }
 
     public function uom(): BelongsTo { return $this->belongsTo(UomMaster::class, 'uom_id'); }
     public function defaultVendor(): BelongsTo { return $this->belongsTo(Supplier::class, 'default_vendor_code', 'code'); }

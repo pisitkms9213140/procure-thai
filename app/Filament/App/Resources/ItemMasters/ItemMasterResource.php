@@ -46,7 +46,14 @@ class ItemMasterResource extends Resource
                     ])
                     ->required()->default('raw_material'),
                 TextInput::make('item_group')->label('กลุ่มสินค้า')->maxLength(100),
-                TextInput::make('uom_code')->label('หน่วยนับ')->maxLength(20),
+                TextInput::make('item_group_name')->label('ชื่อกลุ่มสินค้า')->maxLength(255),
+                TextInput::make('uom_code')->label('หน่วยคงคลัง (หน่วยเล็ก)')->maxLength(20),
+                TextInput::make('purchase_unit')->label('หน่วยซื้อ')
+                    ->helperText('หน่วยที่ใช้ตอนสั่งซื้อใน PO')->maxLength(20),
+                TextInput::make('conversion_factor')->label('ตัวคูณ')
+                    ->helperText('จำนวนหน่วยคงคลังต่อ 1 หน่วยซื้อ เช่น 1 กล่อง = 12 ชิ้น → 12')
+                    ->numeric()->minValue(0)->default(1),
+                TextInput::make('default_warehouse_code')->label('คลังเริ่มต้น')->maxLength(50),
                 TextInput::make('default_vendor_code')->label('รหัส Vendor หลัก')->maxLength(50),
                 TextInput::make('last_purchase_price')->label('ราคาซื้อล่าสุด')->numeric()->prefix('฿'),
                 TextInput::make('min_order_qty')->label('ปริมาณสั่งซื้อขั้นต่ำ')->numeric()->default(1),
@@ -74,7 +81,9 @@ class ItemMasterResource extends Resource
                         'raw_material'=>'วัตถุดิบ','finished_goods'=>'สำเร็จรูป',
                         'packaging'=>'บรรจุภัณฑ์','consumable'=>'วัสดุสิ้นเปลือง','service'=>'บริการ',default=>$state,
                     }),
-                Tables\Columns\TextColumn::make('uom_code')->label('UoM'),
+                Tables\Columns\TextColumn::make('uom_code')->label('หน่วยคงคลัง'),
+                Tables\Columns\TextColumn::make('purchase_unit')->label('หน่วยซื้อ')->placeholder('-'),
+                Tables\Columns\TextColumn::make('conversion_factor')->label('ตัวคูณ')->numeric()->placeholder('-'),
                 Tables\Columns\TextColumn::make('default_vendor_code')->label('Vendor หลัก'),
                 Tables\Columns\TextColumn::make('last_purchase_price')->label('ราคาล่าสุด')->money('THB')->sortable(),
                 Tables\Columns\IconColumn::make('is_active')->label('ใช้งาน')->boolean(),
