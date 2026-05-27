@@ -23,8 +23,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Force HTTPS when behind Cloudflare (Flexible SSL mode).
         // Cloudflare → Origin is plain HTTP, so Laravel thinks the request
-        // is HTTP and generates http:// URLs → Mixed Content errors.
-        if (config('app.env') === 'production') {
+        // is HTTP and generates http:// URLs → Mixed Content errors (broken
+        // assets, and Livewire file-upload previews stuck on "Waiting for size").
+        // Driven by APP_URL scheme so it works regardless of APP_ENV.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 
