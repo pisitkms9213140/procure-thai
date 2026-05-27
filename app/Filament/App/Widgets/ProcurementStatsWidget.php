@@ -25,17 +25,20 @@ class ProcurementStatsWidget extends StatsOverviewWidget
             Stat::make('ซัพพลายเออร์ทั้งหมด', Supplier::where('status', 'active')->count())
                 ->description('รายที่ active')
                 ->icon('heroicon-o-building-office-2')
-                ->color('success'),
+                ->color('success')
+                ->url('/app/suppliers'),
 
             Stat::make('PO ที่เปิดอยู่', PurchaseOrder::whereIn('status', ['sent', 'acknowledged', 'partial'])->count())
                 ->description('มูลค่า ' . number_format($openPoAmount, 2) . ' บาท')
                 ->icon('heroicon-o-document-text')
-                ->color('info'),
+                ->color('info')
+                ->url('/app/open-pos'),
 
             Stat::make('ใบแจ้งหนี้รอตรวจสอบ', $pendingInvoices)
                 ->description($overdueInvoices > 0 ? "เกินกำหนด {$overdueInvoices} ใบ" : 'ไม่มีที่เกินกำหนด')
                 ->icon('heroicon-o-banknotes')
-                ->color($overdueInvoices > 0 ? 'danger' : 'warning'),
+                ->color($overdueInvoices > 0 ? 'danger' : 'warning')
+                ->url('/app/invoices'),
         ];
     }
 }

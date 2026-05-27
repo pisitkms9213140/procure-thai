@@ -2,16 +2,17 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\App\Pages\ProfilePage;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -27,9 +28,23 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('app')
             ->login()
-            ->brandName('ProcureThai')
+            ->brandName(fn () => 'ProcureThai' . (
+                tenancy()->initialized && tenant('company_name')
+                    ? ' / ' . tenant('company_name')
+                    : ''
+            ))
             ->colors([
                 'primary' => Color::Amber,
+            ])
+            ->darkMode(false)
+            ->profile(ProfilePage::class)
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label(fn () => session('locale', 'th') === 'th' ? '🇬🇧 Switch to English' : '🇹🇭 ภาษาไทย')
+                    ->icon('heroicon-o-language')
+                    ->url(fn () => route('locale.switch', [
+                        'lang' => session('locale', 'th') === 'th' ? 'en' : 'th',
+                    ])),
             ])
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\Filament\App\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\Filament\App\Pages')

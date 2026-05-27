@@ -26,5 +26,16 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        // Apply stored locale (TH ↔ EN toggle).
+        // Wrapped in try/catch so it doesn't break CLI/artisan where no session exists.
+        try {
+            $locale = request()->hasSession()
+                ? (request()->session()->get('locale', config('app.locale', 'th')))
+                : config('app.locale', 'th');
+            app()->setLocale($locale);
+        } catch (\Throwable) {
+            // session not started yet — locale stays at app default
+        }
     }
 }

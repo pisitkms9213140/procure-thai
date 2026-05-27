@@ -30,6 +30,14 @@ Route::middleware([
         return redirect('/app/login');
     })->name('login');
 
+    // ─── Locale Switch ──────────────────────────────────────────────
+    Route::get('/locale/{lang}', function (string $lang) {
+        abort_unless(in_array($lang, ['th', 'en']), 404);
+        session(['locale' => $lang]);
+        app()->setLocale($lang);
+        return redirect()->back()->fallback('/app');
+    })->middleware(['auth'])->name('locale.switch');
+
     // ─── Excel Template Downloads ───────────────────────────────────
     Route::get('/app/download-template/{type}', function (string $type) {
         $map = [
