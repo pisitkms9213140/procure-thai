@@ -20,6 +20,15 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Item Category (กลุ่มสินค้า) — master derived from item group code/name
+        Schema::create('item_categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
         // Item Master (วัตถุดิบ / บรรจุภัณฑ์)
         Schema::create('item_masters', function (Blueprint $table) {
             $table->id();
@@ -113,6 +122,7 @@ return new class extends Migration
         Schema::dropIfExists('warehouse_masters');
         Schema::dropIfExists('item_suppliers');
         Schema::dropIfExists('item_masters');
+        Schema::dropIfExists('item_categories');
         Schema::dropIfExists('uom_masters');
     }
 };

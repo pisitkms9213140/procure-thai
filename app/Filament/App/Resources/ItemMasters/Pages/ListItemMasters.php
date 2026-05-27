@@ -3,6 +3,7 @@
 namespace App\Filament\App\Resources\ItemMasters\Pages;
 
 use App\Filament\App\Resources\ItemMasters\ItemMasterResource;
+use App\Models\ItemCategory;
 use App\Models\ItemMaster;
 use App\Support\MappedImportAction;
 use Filament\Actions\CreateAction;
@@ -37,6 +38,16 @@ class ListItemMasters extends ListRecords
                 }
 
                 $factor = (float) ($v['conversion_factor'] ?? 0);
+
+                // Build the category master from the item's group as we import.
+                $group     = trim((string) ($v['item_group'] ?? ''));
+                $groupName = trim((string) ($v['item_group_name'] ?? ''));
+                if ($group !== '') {
+                    ItemCategory::updateOrCreate(
+                        ['code' => $group],
+                        ['name' => $groupName ?: $group, 'is_active' => true]
+                    );
+                }
 
                 // Match withTrashed so a soft-deleted item with the same code is
                 // updated/restored instead of triggering a unique-key collision.

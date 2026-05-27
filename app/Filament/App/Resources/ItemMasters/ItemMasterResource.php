@@ -4,7 +4,11 @@ namespace App\Filament\App\Resources\ItemMasters;
 
 use App\Filament\App\Resources\ItemMasters\Pages;
 use App\Filament\App\Resources\ItemMasters\RelationManagers\VendorsRelationManager;
+use App\Models\ItemCategory;
 use App\Models\ItemMaster;
+use App\Models\Supplier;
+use App\Models\UomMaster;
+use App\Models\WarehouseMaster;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -13,6 +17,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,16 +51,47 @@ class ItemMasterResource extends Resource
                         'packaging'=>'บรรจุภัณฑ์','consumable'=>'วัสดุสิ้นเปลือง','service'=>'บริการ',
                     ])
                     ->required()->default('raw_material'),
-                TextInput::make('item_group')->label('กลุ่มสินค้า')->maxLength(100),
-                TextInput::make('item_group_name')->label('ชื่อกลุ่มสินค้า')->maxLength(255),
-                TextInput::make('uom_code')->label('หน่วยคงคลัง (หน่วยเล็ก)')->maxLength(20),
-                TextInput::make('purchase_unit')->label('หน่วยซื้อ')
-                    ->helperText('หน่วยที่ใช้ตอนสั่งซื้อใน PO')->maxLength(20),
+                Select::make('item_group')->label('กลุ่มสินค้า')
+                    ->options(fn () => ItemCategory::query()->orderBy('code')
+                        ->get()->mapWithKeys(fn ($c) => [$c->code => "{$c->code} - {$c->name}"]))
+                    ->searchable()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Set $set) {
+                        $cat = ItemCategory::where('code', $state)->first();
+                        if ($cat) {
+                            $set('item_group_name', $cat->name);
+                        }
+                    })
+                    ->createOptionForm([
+                        TextInput::make('code')->label('รหัสกลุ่ม')->required(),
+                        TextInput::make('name')->label('ชื่อกลุ่มสินค้า')->required(),
+                    ])
+                    ->createOptionUsing(fn (array $data) => ItemCategory::create([
+                        'code' => $data['code'], 'name' => $data['name'], 'is_active' => true,
+                    ])->code),
+                Select::make('item_group_name')->label('ชื่อกลุ่มสินค้า')
+                    ->options(fn () => ItemCategory::query()->orderBy('name')->pluck('name', 'name'))
+                    ->searchable(),
+                Select::make('uom_code')->label('หน่วยคงคลัง (หน่วยเล็ก)')
+                    ->options(fn () => UomMaster::query()->orderBy('code')
+                        ->get()->mapWithKeys(fn ($u) => [$u->code => "{$u->code} - {$u->name}"]))
+                    ->searchable(),
+                Select::make('purchase_unit')->label('หน่วยซื้อ')
+                    ->helperText('หน่วยที่ใช้ตอนสั่งซื้อใน PO')
+                    ->options(fn () => UomMaster::query()->orderBy('code')
+                        ->get()->mapWithKeys(fn ($u) => [$u->code => "{$u->code} - {$u->name}"]))
+                    ->searchable(),
                 TextInput::make('conversion_factor')->label('ตัวคูณ')
                     ->helperText('จำนวนหน่วยคงคลังต่อ 1 หน่วยซื้อ เช่น 1 กล่อง = 12 ชิ้น → 12')
                     ->numeric()->minValue(0)->default(1),
-                TextInput::make('default_warehouse_code')->label('คลังเริ่มต้น')->maxLength(50),
-                TextInput::make('default_vendor_code')->label('รหัส Vendor หลัก')->maxLength(50),
+                Select::make('default_warehouse_code')->label('คลังเริ่มต้น')
+                    ->options(fn () => WarehouseMaster::query()->orderBy('code')
+                        ->get()->mapWithKeys(fn ($w) => [$w->code => "{$w->code} - {$w->name}"]))
+                    ->searchable(),
+                Select::make('default_vendor_code')->label('รหัส Vendor หลัก')
+                    ->options(fn () => Supplier::query()->orderBy('code')
+                        ->get()->mapWithKeys(fn ($s) => [$s->code => "{$s->code} - {$s->name}"]))
+                    ->searchable(),
                 TextInput::make('last_purchase_price')->label('ราคาซื้อล่าสุด')->numeric()->prefix('฿'),
                 TextInput::make('min_order_qty')->label('ปริมาณสั่งซื้อขั้นต่ำ')->numeric()->default(1),
                 TextInput::make('lead_time_days')->label('Lead Time (วัน)')->numeric()->default(0),
