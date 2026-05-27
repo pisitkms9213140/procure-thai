@@ -33,10 +33,11 @@ class ProfilePage extends Page implements HasForms
         $user = auth()->user();
 
         $this->form->fill([
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'phone'      => $user->phone,
-            'avatar_url' => $user->avatar_url,
+            'name'          => $user->name,
+            'email'         => $user->email,
+            'phone'         => $user->phone,
+            'avatar_url'    => $user->avatar_url,
+            'signature_url' => $user->signature_url,
         ]);
     }
 
@@ -92,6 +93,19 @@ class ProfilePage extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('ลายเซ็นดิจิทัล')
+                    ->description('ใช้ประทับบนใบสั่งซื้อ (PO) เมื่อผู้จัดการอนุมัติ แนะนำ PNG พื้นหลังโปร่งใส')
+                    ->visible(fn () => $user->isManager())
+                    ->schema([
+                        FileUpload::make('signature_url')
+                            ->label('')
+                            ->image()
+                            ->disk('public')
+                            ->directory('signatures')
+                            ->maxSize(1024)
+                            ->columnSpanFull(),
+                    ]),
+
                 Section::make('เปลี่ยนรหัสผ่าน')
                     ->description('เว้นว่างไว้หากไม่ต้องการเปลี่ยน')
                     ->columns(2)
@@ -124,10 +138,11 @@ class ProfilePage extends Page implements HasForms
         $user = auth()->user();
 
         $update = [
-            'name'       => $data['name'],
-            'email'      => $data['email'],
-            'phone'      => $data['phone'] ?? null,
-            'avatar_url' => $data['avatar_url'] ?? null,
+            'name'          => $data['name'],
+            'email'         => $data['email'],
+            'phone'         => $data['phone'] ?? null,
+            'avatar_url'    => $data['avatar_url'] ?? null,
+            'signature_url' => $data['signature_url'] ?? null,
         ];
 
         if (!empty($data['password'])) {
