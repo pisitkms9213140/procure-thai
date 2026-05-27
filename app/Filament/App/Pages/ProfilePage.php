@@ -14,6 +14,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class ProfilePage extends Page implements HasForms
@@ -155,6 +156,30 @@ class ProfilePage extends Page implements HasForms
             ->success()
             ->title('บันทึกโปรไฟล์แล้ว')
             ->send();
+    }
+
+    /** Save a hand-drawn signature (base64 PNG data URL from the canvas pad). */
+    public function saveDrawnSignature(string $dataUrl): void
+    {
+        if (! str_starts_with($dataUrl, 'data:image')) {
+            return;
+        }
+
+        $b64    = substr($dataUrl, (int) strpos($dataUrl, ',') + 1);
+        $binary = base64_decode($b64, true);
+
+        if ($binary === false || $binary === '') {
+            Notification::make()->danger()->title('ลายเซ็นไม่ถูกต้อง')->send();
+            return;
+        }
+
+        $path = 'signatures/sig_' . auth()->id() . '_' . time() . '.png';
+        Storage::disk('public')->put($path, $binary);
+
+        auth()->user()->update(['signature_url' => $path]);
+        $this->data['signature_url'] = $path; // reflect in the upload preview
+
+        Notification::make()->success()->title('บันทึกลายเซ็นที่วาดแล้ว')->send();
     }
 
     protected function getHeaderActions(): array
