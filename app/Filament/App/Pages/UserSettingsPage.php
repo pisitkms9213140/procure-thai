@@ -2,11 +2,13 @@
 
 namespace App\Filament\App\Pages;
 
+use App\Models\Supplier;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\Action as TableAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -80,7 +82,17 @@ class UserSettingsPage extends Page implements HasTable
                         Select::make('role')
                             ->label('สิทธิ์การใช้งาน')
                             ->options(User::roleOptions())
-                            ->required(),
+                            ->required()
+                            ->live(),
+
+                        Select::make('vendor_code')
+                            ->label('ผูกกับซัพพลายเออร์')
+                            ->helperText('เลือกซัพพลายเออร์ที่ผู้ใช้นี้เป็นตัวแทน (สำหรับสิทธิ์ Vendor)')
+                            ->options(fn () => Supplier::query()->orderBy('code')
+                                ->get()->mapWithKeys(fn ($s) => [$s->code => "{$s->code} - {$s->name}"]))
+                            ->searchable()
+                            ->visible(fn (Get $get) => $get('role') === User::ROLE_VENDOR)
+                            ->required(fn (Get $get) => $get('role') === User::ROLE_VENDOR),
 
                         TextInput::make('password')
                             ->label('รหัสผ่านใหม่ (เว้นว่างเพื่อคงเดิม)')
@@ -127,7 +139,17 @@ class UserSettingsPage extends Page implements HasTable
                             ->options(User::roleOptions())
                             ->default(User::ROLE_STAFF)
                             ->required()
-                            ->helperText('Manager = Admin เต็มสิทธิ์ | Supervisor = อนุมัติได้ | Staff = ใช้งานทั่วไป'),
+                            ->live()
+                            ->helperText('Manager = Admin เต็มสิทธิ์ | Supervisor = อนุมัติได้ | Staff = ใช้งานทั่วไป | Vendor = ซัพพลายเออร์'),
+
+                        Select::make('vendor_code')
+                            ->label('ผูกกับซัพพลายเออร์')
+                            ->helperText('เลือกซัพพลายเออร์ที่ผู้ใช้นี้เป็นตัวแทน')
+                            ->options(fn () => Supplier::query()->orderBy('code')
+                                ->get()->mapWithKeys(fn ($s) => [$s->code => "{$s->code} - {$s->name}"]))
+                            ->searchable()
+                            ->visible(fn (Get $get) => $get('role') === User::ROLE_VENDOR)
+                            ->required(fn (Get $get) => $get('role') === User::ROLE_VENDOR),
 
                         TextInput::make('password')
                             ->label('รหัสผ่าน')
@@ -137,11 +159,12 @@ class UserSettingsPage extends Page implements HasTable
                     ])
                     ->action(function (array $data) {
                         User::create([
-                            'name'     => $data['name'],
-                            'email'    => $data['email'],
-                            'phone'    => $data['phone'] ?? null,
-                            'role'     => $data['role'],
-                            'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+                            'name'        => $data['name'],
+                            'email'       => $data['email'],
+                            'phone'       => $data['phone'] ?? null,
+                            'role'        => $data['role'],
+                            'vendor_code' => $data['role'] === User::ROLE_VENDOR ? ($data['vendor_code'] ?? null) : null,
+                            'password'    => \Illuminate\Support\Facades\Hash::make($data['password']),
                         ]);
 
                         Notification::make()

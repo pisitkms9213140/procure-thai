@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'phone', 'avatar_url', 'signature_url', 'role', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'avatar_url', 'signature_url', 'role', 'vendor_code', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasAvatar
 {
@@ -24,6 +24,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     const ROLE_MANAGER    = 'manager';
     const ROLE_SUPERVISOR = 'supervisor';
     const ROLE_STAFF      = 'staff';
+    const ROLE_VENDOR     = 'vendor';
 
     public static function roleOptions(): array
     {
@@ -31,6 +32,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             self::ROLE_MANAGER    => '👑 Manager (Admin)',
             self::ROLE_SUPERVISOR => '🔷 Supervisor',
             self::ROLE_STAFF      => '👤 Staff',
+            self::ROLE_VENDOR     => '🚚 Vendor (ซัพพลายเออร์)',
         ];
     }
 
@@ -40,25 +42,28 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             self::ROLE_MANAGER    => 'warning',
             self::ROLE_SUPERVISOR => 'info',
             self::ROLE_STAFF      => 'gray',
+            self::ROLE_VENDOR     => 'success',
         ];
     }
 
     public function getRoleLabelAttribute(): string
     {
-        return match ($this->role) {
-            self::ROLE_MANAGER    => '👑 Manager (Admin)',
-            self::ROLE_SUPERVISOR => '🔷 Supervisor',
-            self::ROLE_STAFF      => '👤 Staff',
-            default               => '👤 Staff',
-        };
+        return self::roleOptions()[$this->role] ?? '👤 Staff';
     }
 
     public function isManager(): bool    { return $this->role === self::ROLE_MANAGER; }
     public function isSupervisor(): bool { return $this->role === self::ROLE_SUPERVISOR; }
     public function isStaff(): bool      { return $this->role === self::ROLE_STAFF; }
+    public function isVendor(): bool     { return $this->role === self::ROLE_VENDOR; }
 
     /** Manager + Supervisor can do anything a manager can */
     public function canManage(): bool    { return in_array($this->role, [self::ROLE_MANAGER, self::ROLE_SUPERVISOR]); }
+
+    /** The supplier this vendor-user is linked to (via vendor_code → Supplier.code). */
+    public function supplier(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'vendor_code', 'code');
+    }
 
     // ─── Filament ─────────────────────────────────────────────────────
     public function canAccessPanel(Panel $panel): bool
