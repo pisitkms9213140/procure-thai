@@ -21,6 +21,7 @@ use Filament\Schemas\Schema;
 class IntegrationSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
+    use \App\Filament\Concerns\HiddenFromVendor;
 
     protected string $view                = 'filament.app.pages.integration-settings-page';
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-cog-6-tooth';

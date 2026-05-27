@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Storage;
 class CompanySettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
+    use \App\Filament\Concerns\HiddenFromVendor;
 
     protected string $view                                   = 'filament.app.pages.company-settings-page';
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-building-office';

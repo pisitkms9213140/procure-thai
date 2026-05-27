@@ -21,6 +21,7 @@ use Filament\Tables\Table;
 class UserSettingsPage extends Page implements HasTable
 {
     use InteractsWithTable;
+    use \App\Filament\Concerns\HiddenFromVendor;
 
     protected string $view                       = 'filament.app.pages.user-settings-page';
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-users';

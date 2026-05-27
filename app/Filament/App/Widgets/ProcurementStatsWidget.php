@@ -10,6 +10,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ProcurementStatsWidget extends StatsOverviewWidget
 {
+    public static function canView(): bool
+    {
+        return ! (auth()->user()?->isVendor() ?? false);
+    }
+
     protected function getStats(): array
     {
         $openPoAmount = PurchaseOrder::whereIn('status', ['sent', 'acknowledged', 'partial'])

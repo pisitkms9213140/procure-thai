@@ -15,6 +15,8 @@ class OpenPoResource extends Resource
 {
     protected static ?string $model = OpenPo::class;
 
+    use \App\Filament\Concerns\HiddenFromVendor;
+
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-document-text';
     protected static \UnitEnum|string|null   $navigationGroup = 'จัดซื้อ';
     protected static ?string $navigationLabel  = 'PO ค้างรับ';

@@ -23,6 +23,7 @@ use Filament\Tables\Table;
 class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
+    use \App\Filament\Concerns\HiddenFromVendor;
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'ใบแจ้งหนี้';
     protected static ?string $modelLabel = 'ใบแจ้งหนี้';

@@ -121,6 +121,7 @@ class MappedImportAction
             ->label('นำเข้า Excel')
             ->icon('heroicon-o-arrow-up-tray')
             ->color('gray')
+            ->visible(fn () => ! (auth()->user()?->isVendor() ?? false))
             ->modalHeading($heading)
             ->modalDescription('อัปโหลดไฟล์ .xlsx แล้วจับคู่คอลัมน์ในไฟล์กับฟิลด์ของระบบก่อนกดนำเข้า')
             ->modalSubmitActionLabel('นำเข้า')

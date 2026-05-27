@@ -33,6 +33,28 @@ class MaterialRequestResource extends Resource
     protected static ?string $pluralModelLabel = 'ใบขอซื้อ';
     protected static ?int    $navigationSort   = 1;
 
+    // ─── Vendor scoping: a vendor sees only sent PRs that include their lines ───
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+        if ($user?->isVendor()) {
+            $query->where('status', '!=', 'draft')
+                ->whereHas('items', fn ($i) => $i->where('vendor_code', $user->vendor_code));
+        }
+        return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        return ! (auth()->user()?->isVendor() ?? false);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return ! (auth()->user()?->isVendor() ?? false);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
@@ -148,8 +170,13 @@ class MaterialRequestResource extends Resource
                     ->requiresConfirmation()
                     ->modalDescription('ทำเครื่องหมายว่าซัพพลายเออร์ยืนยันแล้ว — เฉพาะรายการที่กรอก "ราคายืนยัน" ไว้ (กรอกได้ในหน้าแก้ไข)')
                     ->action(function (MaterialRequest $record) {
+                        $user      = auth()->user();
                         $confirmed = 0;
                         foreach ($record->items as $item) {
+                            // A vendor may only confirm their own lines.
+                            if ($user?->isVendor() && $item->vendor_code !== $user->vendor_code) {
+                                continue;
+                            }
                             if ($item->confirmed_unit_price !== null) {
                                 $item->update([
                                     'status'        => 'quoted',

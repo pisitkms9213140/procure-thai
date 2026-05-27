@@ -6,6 +6,8 @@ use Filament\Pages\Page;
 
 class ExcelTemplatesPage extends Page
 {
+    use \App\Filament\Concerns\HiddenFromVendor;
+
     protected string $view                        = 'filament.app.pages.excel-templates-page';
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-arrow-down-tray';
     protected static ?string $navigationLabel     = 'Excel Templates';

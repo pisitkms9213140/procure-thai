@@ -20,6 +20,8 @@ class WarehouseMasterResource extends Resource
 {
     protected static ?string $model = WarehouseMaster::class;
 
+    use \App\Filament\Concerns\HiddenFromVendor;
+
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-building-storefront';
     protected static \UnitEnum|string|null   $navigationGroup = 'ข้อมูลหลัก';
     protected static ?string $navigationLabel  = 'คลังสินค้า';

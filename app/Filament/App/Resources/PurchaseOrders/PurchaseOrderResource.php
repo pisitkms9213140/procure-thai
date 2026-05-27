@@ -26,6 +26,7 @@ use Filament\Tables\Table;
 class PurchaseOrderResource extends Resource
 {
     protected static ?string $model = PurchaseOrder::class;
+    use \App\Filament\Concerns\HiddenFromVendor;
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'ใบสั่งซื้อ (PO)';
     protected static ?string $modelLabel = 'ใบสั่งซื้อ';

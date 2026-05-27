@@ -18,6 +18,8 @@ class ItemCategoryResource extends Resource
 {
     protected static ?string $model = ItemCategory::class;
 
+    use \App\Filament\Concerns\HiddenFromVendor;
+
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-tag';
     protected static \UnitEnum|string|null   $navigationGroup = 'ข้อมูลหลัก';
     protected static ?string $navigationLabel  = 'กลุ่มสินค้า (Category)';

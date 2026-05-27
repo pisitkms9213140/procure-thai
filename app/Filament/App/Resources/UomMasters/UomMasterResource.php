@@ -18,6 +18,8 @@ class UomMasterResource extends Resource
 {
     protected static ?string $model = UomMaster::class;
 
+    use \App\Filament\Concerns\HiddenFromVendor;
+
     protected static \BackedEnum|string|null $navigationIcon  = 'heroicon-o-scale';
     protected static \UnitEnum|string|null   $navigationGroup = 'ข้อมูลหลัก';
     protected static ?string $navigationLabel  = 'หน่วยนับ (UoM)';

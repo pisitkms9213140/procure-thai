@@ -29,6 +29,27 @@ class SupplierResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $recordTitleAttribute = 'name';
 
+    // ─── Vendor scoping: a vendor sees/edits only their own supplier ───
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+        if ($user?->isVendor()) {
+            $query->where('code', $user->vendor_code);
+        }
+        return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        return ! (auth()->user()?->isVendor() ?? false);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return ! (auth()->user()?->isVendor() ?? false);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
