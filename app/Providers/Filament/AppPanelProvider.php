@@ -49,7 +49,6 @@ class AppPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->darkMode(false)
             ->userMenuItems([
                 MenuItem::make()
                     ->label('โปรไฟล์ของฉัน')
