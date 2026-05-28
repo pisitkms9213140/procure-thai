@@ -162,9 +162,11 @@ class ItemMasterResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            VendorsRelationManager::class,
-        ];
+        // Vendors panel temporarily disabled — it was 500-ing on lazy-load and
+        // breaking the edit page. Per-item vendor linking is currently handled
+        // by the "นำเข้า Vendor" bulk import on the list page. Re-enable once
+        // the actual exception is captured and fixed.
+        return [];
     }
 
     public static function getPages(): array
