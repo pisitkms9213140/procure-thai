@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('province')->nullable();
             $table->string('postcode', 10)->nullable();
             $table->enum('type', ['goods', 'service', 'both'])->default('goods');
+            $table->string('channel', 16)->default('both'); // desktop | mobile | both
             $table->enum('status', ['active', 'inactive', 'blacklisted'])->default('active');
             $table->string('payment_terms')->nullable();
             $table->text('notes')->nullable();

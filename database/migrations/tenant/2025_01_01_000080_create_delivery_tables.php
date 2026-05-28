@@ -22,6 +22,15 @@ return new class extends Migration
                 ->default('pending');
             $table->string('qr_token')->unique()->nullable(); // UUID สำหรับ QR Code
             $table->timestamp('qr_expires_at')->nullable();
+            $table->string('qr_format', 16)->nullable();      // print | digital
+
+            // Vendor-side verification block — gates QR DN issuance
+            $table->timestamp('verified_at')->nullable();
+            $table->foreignId('verified_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('verified_invoice_no')->nullable();
+            $table->decimal('verified_invoice_amount', 15, 2)->nullable();
+            $table->string('verified_tax_id', 20)->nullable();
+
             $table->text('notes')->nullable();
             $table->timestamps();
         });

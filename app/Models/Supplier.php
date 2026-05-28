@@ -12,7 +12,7 @@ class Supplier extends Model
 
     protected $fillable = [
         'code', 'name', 'tax_id', 'email', 'phone', 'contact_person',
-        'address', 'province', 'postcode', 'type', 'status',
+        'address', 'province', 'postcode', 'type', 'channel', 'status',
         'payment_terms', 'notes',
     ];
 

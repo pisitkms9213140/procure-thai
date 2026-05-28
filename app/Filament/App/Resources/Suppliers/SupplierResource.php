@@ -89,6 +89,18 @@ class SupplierResource extends Resource
                         ])
                         ->required(),
 
+                    Select::make('channel')
+                        ->label('ช่องทางใช้งาน')
+                        ->helperText('Desktop = พนักงานบริษัท / Mobile = รายย่อย (PWA)')
+                        ->options([
+                            'desktop' => '💻 Desktop (บริษัท)',
+                            'mobile'  => '📱 Mobile (รายย่อย — PWA)',
+                            'both'    => 'ทั้งสองช่องทาง',
+                        ])
+                        ->default('both')
+                        ->required()
+                        ->disabled(fn () => auth()->user()?->isVendor() ?? false),
+
                     Select::make('status')
                         ->label('สถานะ')
                         ->options([
