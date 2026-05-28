@@ -103,7 +103,7 @@ class SupplierResource extends Resource
                     TextInput::make('payment_terms')
                         ->label('เงื่อนไขการชำระเงิน')
                         ->placeholder('เช่น Net 30, COD'),
-                ])->columns(2),
+                ])->columns(2)->columnSpanFull(),
 
             Section::make('ข้อมูลติดต่อ')
                 ->schema([
@@ -136,11 +136,12 @@ class SupplierResource extends Resource
                         ->label('หมายเหตุ')
                         ->rows(2)
                         ->columnSpanFull(),
-                ])->columns(2),
+                ])->columns(2)->columnSpanFull(),
 
             Section::make('ข้อมูลบัญชีผู้ใช้ (Account)')
                 ->description('บัญชีสำหรับซัพพลายเออร์เข้าระบบ — ใช้ปุ่ม "รีเซ็ตรหัสผ่าน" (แอดมิน) หรือ "เปลี่ยนรหัสผ่าน" (ซัพพลายเออร์)')
                 ->visible(fn ($record) => $record !== null)
+                ->columnSpanFull()
                 ->schema([
                     Placeholder::make('account_username')
                         ->label('Username (อีเมลเข้าระบบ)')

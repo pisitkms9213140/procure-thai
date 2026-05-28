@@ -15,7 +15,8 @@ class ListSuppliers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->visible(fn () => ! (auth()->user()?->isVendor() ?? false)),
             MappedImportAction::make('นำเข้าผู้จัดจำหน่ายจาก Excel', [
                 ['key' => 'code', 'label' => 'รหัส Vendor (code)', 'required' => true, 'guess' => ['card_code', 'vendor', 'code', 'รหัส']],
                 ['key' => 'name', 'label' => 'ชื่อ Vendor (name)', 'guess' => ['card_name', 'name', 'ชื่อ']],
