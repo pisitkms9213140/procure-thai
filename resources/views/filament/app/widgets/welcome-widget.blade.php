@@ -11,15 +11,19 @@
     <div class="fi-wi-account flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
         {{-- Left: Avatar + Info --}}
         <div class="flex items-center gap-4 min-w-0">
-            {{-- Avatar --}}
+            {{-- Avatar (inline styles so it renders even when Filament's
+                 compiled CSS lacks rounded-full / bg-primary classes) --}}
             @if ($userData['avatar_url'])
                 <img src="{{ $userData['avatar_url'] }}"
                      alt="{{ $userData['name'] }}"
-                     style="height: 5rem; width: 5rem; object-fit: cover; flex: none;"
-                     class="rounded-full ring-2 ring-primary-500/30">
+                     style="height: 5rem; width: 5rem; object-fit: cover; flex: none;
+                            border-radius: 9999px; box-shadow: 0 0 0 2px rgba(245,158,11,0.3);">
             @else
-                <div style="height: 5rem; width: 5rem; flex: none; font-size: 1.5rem;"
-                     class="flex items-center justify-center rounded-full bg-primary-500 text-white font-semibold select-none">
+                <div style="height: 5rem; width: 5rem; flex: none;
+                            display: flex; align-items: center; justify-content: center;
+                            border-radius: 9999px; background-color: #f59e0b; color: #fff;
+                            font-size: 1.5rem; font-weight: 600; user-select: none;
+                            letter-spacing: 0.02em;">
                     {{ $userData['initials'] }}
                 </div>
             @endif
