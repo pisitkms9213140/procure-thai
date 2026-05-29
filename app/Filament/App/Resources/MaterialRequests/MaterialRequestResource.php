@@ -198,6 +198,76 @@ class MaterialRequestResource extends Resource
                             ->title("บันทึกการยืนยันจากซัพพลายเออร์ {$confirmed} รายการ")->send();
                     }),
 
+                \Filament\Actions\Action::make('approveAsPo')
+                    ->label('อนุมัติเป็น PO')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('primary')
+                    ->visible(fn (MaterialRequest $record) => (auth()->user()?->canManage() ?? false)
+                        && $record->items->count() > 0
+                        && $record->items->every(fn ($i) => in_array($i->status, ['quoted', 'approved', 'cancelled'])))
+                    ->requiresConfirmation()
+                    ->modalDescription('อนุมัติทุกรายการที่ยืนยันราคาแล้ว → สร้างใบสั่งซื้อ (PO) อัตโนมัติ')
+                    ->action(function (MaterialRequest $record) {
+                        $created = 0;
+                        foreach ($record->items as $item) {
+                            if ($item->status !== 'quoted') {
+                                continue;
+                            }
+                            $price = (float) ($item->confirmed_unit_price ?? 0);
+                            $qty   = (float) ($item->confirmed_qty ?? $item->quantity);
+                            $when  = $item->confirmed_delivery_date ?? now()->addDays(7);
+
+                            $qt = \App\Models\Quotation::create([
+                                'qt_number'       => \App\Models\Quotation::generateNumber(),
+                                'request_item_id' => $item->id,
+                                'vendor_code'     => $item->vendor_code,
+                                'unit_price'      => $price,
+                                'quantity'        => $qty,
+                                'delivery_date'   => $when,
+                                'lead_time_days'  => 0,
+                                'status'          => 'approved',
+                                'reviewed_by'     => auth()->id(),
+                                'reviewed_at'    => now(),
+                            ]);
+
+                            \App\Models\VirtualPo::create([
+                                'vpo_number'             => \App\Models\VirtualPo::generateNumber(),
+                                'quotation_id'           => $qt->id,
+                                'vendor_code'            => $item->vendor_code,
+                                'po_date'                => now()->toDateString(),
+                                'expected_delivery_date' => $when,
+                                'unit_price'             => $price,
+                                'ordered_qty'            => $qty,
+                                'total_amount'           => round($price * $qty, 2),
+                                'currency'               => 'THB',
+                                'status'                 => 'pending',
+                                'approved_by'            => auth()->id(),
+                                'approved_at'            => now(),
+                            ]);
+
+                            $item->update(['status' => 'approved']);
+                            $created++;
+                        }
+
+                        if ($created === 0) {
+                            \Filament\Notifications\Notification::make()->warning()
+                                ->title('ไม่มีรายการที่อนุมัติได้')
+                                ->body('ทุกบรรทัดต้องอยู่ในสถานะ "ยืนยันราคาแล้ว"')->send();
+                            return;
+                        }
+
+                        // Mark the MR complete when every line is approved/cancelled.
+                        $remaining = $record->fresh()->items
+                            ->whereNotIn('status', ['approved', 'cancelled'])->count();
+                        if ($remaining === 0) {
+                            $record->update(['status' => 'completed']);
+                        }
+
+                        \Filament\Notifications\Notification::make()->success()
+                            ->title("อนุมัติ PO แล้ว {$created} รายการ")
+                            ->body('ดูได้ที่เมนู ใบสั่งซื้อ (PO)')->send();
+                    }),
+
                 EditAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
